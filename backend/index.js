@@ -21,7 +21,11 @@ const app = express()
  DBConnect()
 
  app.use(router)
+ app.use(cors({
+    origin:"http://localhost:3000",
+    credentials: true
+ }))
 
- const PORT = process.env.PORT || 4000
+ const PORT = process.env.PORT || 5000
 
  app.listen(PORT,()=>console.log(`Server is running at ${PORT}`))
