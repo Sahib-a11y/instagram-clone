@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from 'bcrypt'
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import requireLogin from "../middleware/requireLogin.js";
 const router =Router()
 
 router.post("/signup",async(req,res) =>{
@@ -52,6 +53,10 @@ router.post("/login",async(req,res) => {
     } catch (error) {
         console.log("Error",error)
     }
+})
+
+router.get("/protected", requireLogin,(req,res) => {
+    res.send("protected")
 })
 
 
