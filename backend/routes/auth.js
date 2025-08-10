@@ -56,7 +56,9 @@ router.post("/login",async(req,res) => {
 })
 
 router.get("/protected", requireLogin,(req,res) => {
-    res.send("protected")
+    console.log(req.Userdata);
+    
+    res.send("protected", req.Userdata.name)
 })
 
 
