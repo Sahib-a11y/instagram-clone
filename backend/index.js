@@ -2,7 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import 'dotenv/config' 
-import router from './routes/auth.js'
+import Authrouter from "./routes/auth.js"
+import Postrouter from "./routes/post.js"
+import Userrouter from './routes/user.js'
 
 const app = express()
  app.use(cors())
@@ -20,7 +22,9 @@ const app = express()
 
  DBConnect()
 
- app.use(router)
+ app.use(Authrouter)
+ app.use(Postrouter)
+ app.use(Userrouter)
  app.use(cors({
     origin:"http://localhost:3000",
     credentials: true
