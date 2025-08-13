@@ -1,48 +1,78 @@
-import React,{useState} from 'react'
-import Login from './components/Login';
-import Signup from './components/Signup';
+import React,{useState,useEffect} from "react";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import Dashboard from "./components/Dashboard";
+import Navbar from "./components/Navbar";
+
 
 function App() {
-  const [ isLogin, setLogin] = useState(true);
-  const [ isLoggedin, setInLoggedin] = useState(false);
+  const [isLogin,setIsLogin] = useState(true)
+  const [isLoggedIn,setIsLoggedIn] = useState(false)
+  const [token,settoken] = useState(localStorage.getItem('token') || '')
+  const [userData,setUserData] = useState(null)
 
-  const handleLoginAccces = () => {
-    setInLoggedin(true)
-  }
+  useEffect(() => {
+    if (token) {
+      verifyToken()
+    }
+  },[token]);
 
-  const handleLogout = () => {
+  const verifyToken = async () => {
+    try{
+      const response =  await fetch('http://localhost:4000/protected',{
+        method: 'GET',
+        headers:{
+          'Authorization' : `Bearer ${token}`
+        }
+      });
+
+      if(response.ok){
+        const data = await response.json();
+        setIsLoggedIn(true);
+        setUserData(data.user);
+      }else{
+        localStorage.removeItem('token');
+        settoken('');
+      }
+    }catch(error){
+      console.error('Token verfication failed:', error);
+    }
+  };
+
+  const handleLoginSuccess = (token) => {
+    localStorage.setItem('token' ,token);
+    settoken(token);
+    setIsLoggedIn(true)
+  };
+
+  const  handleLogout = () => {
     localStorage.removeItem('token')
-
-setInLoggedin(false)
-  }
-
-
-  if(isLoggedin) {
+    settoken('')
+    setIsLoggedIn(false)
+    setUserData(null)
+  };
+  if(isLoggedIn){
     return(
-      <div className = "min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className= "bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className = "text-2xl font-bold text-green-600 mb-4">Login Successful</h2>
-          <button 
-          onClick = {handleLogout}
-          className= "bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition">Logout</button>
-        </div>
+      <div className="min-h-screen bg-gray-100">
+        <Navbar onLogout= {handleLogout}/>
+        <Dashboard userData = {userData} token={token}/>
       </div>
     )
   }
 
   return(
-    <div className = "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className = "max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         {isLogin ? (
           <Login
-          onToggleform={()=> setLogin(false)}
-          onLoginSuccess={handleLoginAccces}/>
-        ) : (
-          <Signup ontoggleform={() => setLogin(true)}/>
+          onToggleform={() => setIsLogin(false)}
+          onLoginSuccess={handleLoginSuccess}/>
+        ):(
+          <Signup onToggleForm={() => setIsLogin(true)}/>
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default App;
+export default App
