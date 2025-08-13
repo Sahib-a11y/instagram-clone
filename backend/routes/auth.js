@@ -61,8 +61,4 @@ router.get("/protected", requireLogin,(req,res) => {
     res.send("protected", req.Userdata.name)
 })
 
-
-
-
-
 export default router
