@@ -5,6 +5,7 @@ import 'dotenv/config'
 import Authrouter from "./routes/auth.js"
 import Postrouter from "./routes/post.js"
 import Userrouter from './routes/user.js'
+import storyrouter from './routes/story.js'
 
 const app = express()
  app.use(cors())
@@ -29,6 +30,8 @@ const app = express()
     origin:"http://localhost:3000",
     credentials: true
  }))
+ app.use("/api/stories", storyrouter)
+
 
  const PORT = process.env.PORT || 5000
 
