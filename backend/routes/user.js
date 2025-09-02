@@ -3,9 +3,7 @@ import requireLogin from "../middleware/requireLogin.js";
 import User from "../models/User.js";
 import Post from "../models/Post.js";
 
-
-
-const router =Router()
+const router = Router()
 
 router.get("/user/:id",requireLogin,async(req,res) => {
     const result = await  User.findOne({_id:req.params.id})
@@ -15,8 +13,7 @@ router.get("/user/:id",requireLogin,async(req,res) => {
         result.password = undefined
         const posts = await Post.find({postedBy:req.params.id})
         return res.status(200).json({msg:"All Post",result,posts})
-    }
-    
+    }    
 })
 
 
@@ -56,6 +53,5 @@ router.put('/unfollow', requireLogin,async(req,res) => {
         console.log("error",error);
     }
 })
-
 
 export default router

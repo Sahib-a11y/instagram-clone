@@ -20,7 +20,7 @@ const CreatePost = ({ token, onCreatePost }) => {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/createPost", {
+      const response = await fetch("http://localhost:5000/createPost", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

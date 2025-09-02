@@ -110,5 +110,4 @@ router.delete("/deletepost/:postId",requireLogin,async(req,res)=>{
     }
 })
 
-
 export default router

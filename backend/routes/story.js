@@ -40,7 +40,6 @@ router.get("/my", requireLogin, async (req, res) => {
   }
 });
 
-
 router.delete("/:id", requireLogin, async (req, res) => {
   try {
     const story = await Story.findById(req.params.id);

@@ -2,7 +2,7 @@ import React,{ useState } from "react";
 import { Mail,Eye,EyeOff, Lock } from "lucide-react";
 
 const Login = ({onToggleform, onLoginSuccess}) => {
-    const[formdata,setFormData] = useState({email:'',password:''});
+    const [formdata,setFormData] = useState({email:'', password:''});
     const [isLoading,setIsLoading] = useState(false)
     const [message,setMessage] = useState('')
     const [showPassword , setshowpassword] = useState(false)
@@ -22,7 +22,7 @@ const Login = ({onToggleform, onLoginSuccess}) => {
     setMessage('');
 
     try {
-        const response = await fetch('http://localhost:4000/login',{
+        const response = await fetch('http://localhost:5000/login',{
             method:'POST',
             headers:{'Content-Type': 'application/json'},
             body: JSON.stringify(formdata),
@@ -118,4 +118,3 @@ const Login = ({onToggleform, onLoginSuccess}) => {
 
 
 export default Login
-

@@ -9,7 +9,7 @@ const  Post = ({post,token}) => {
 
     const  handleLike  =  async () => {
         try {
-             const response  = await fetch('http://localhost:4000/like',{
+             const response  = await fetch('http://localhost:5000/like',{
                 method: 'PUT',
                 headers:{
                     'Content-Type' : 'application/json',
