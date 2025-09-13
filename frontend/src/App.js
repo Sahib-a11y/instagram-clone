@@ -1,78 +1,80 @@
-import React,{useState,useEffect} from "react";
-import Login from "./components/Login";
-import Signup from "./components/Signup";
-import Dashboard from "./components/Dashboard";
-import Navbar from "./components/Navbar";
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoadingSpinner from './components/common/LoadingSpinner';
+import Layout from './components/Layout/Layout';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Home from './pages/Home';
+import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 
 
-function App() {
-  const [isLogin,setIsLogin] = useState(true)
-  const [isLoggedIn,setIsLoggedIn] = useState(false)
-  const [token,settoken] = useState(localStorage.getItem('token') || '')
-  const [userData,setUserData] = useState(null)
+const AppRouter = () => {
+  const { isAuthenticated, loading } = useAuth();
+  const [currentPage, setCurrentPage] = useState('home');
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
-  useEffect(() => {
-    if (token) {
-      verifyToken()
-    }
-  },[token]);
-
-  const verifyToken = async () => {
-    try{
-      const response =  await fetch('http://localhost:4000/protected',{
-        method: 'GET',
-        headers:{
-          'Authorization' : `Bearer ${token}`
-        }
-      });
-
-      if(response.ok){
-        const data = await response.json();
-        setIsLoggedIn(true);
-        setUserData(data.user);
-      }else{
-        localStorage.removeItem('token');
-        settoken('');
-      }
-    }catch(error){
-      console.error('Token verfication failed:', error);
-    }
-  };
-
-  const handleLoginSuccess = (token) => {
-    localStorage.setItem('token' ,token);
-    settoken(token);
-    setIsLoggedIn(true)
-  };
-
-  const  handleLogout = () => {
-    localStorage.removeItem('token')
-    settoken('')
-    setIsLoggedIn(false)
-    setUserData(null)
-  };
-  if(isLoggedIn){
-    return(
-      <div className="min-h-screen bg-gray-100">
-        <Navbar onLogout= {handleLogout}/>
-        <Dashboard userData = {userData} token={token}/>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner />
       </div>
-    )
+    );
   }
 
-  return(
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        {isLogin ? (
-          <Login
-          onToggleform={() => setIsLogin(false)}
-          onLoginSuccess={handleLoginSuccess}/>
-        ):(
-          <Signup onToggleForm={() => setIsLogin(true)}/>
-        )}
-      </div>
+  // Nf
+  const navigate = (page, userId = null) => {
+    setCurrentPage(page);
+    if (userId) setSelectedUserId(userId);
+  };
+
+  //current page ko render kree gaa
+  const renderPage = () => {
+    if (!isAuthenticated) {
+      switch (currentPage) {
+        case 'register':
+          return <Register onNavigate={navigate} />;
+        default:
+          return <Login onNavigate={navigate} />;
+      }
+    }
+
+    switch (currentPage) {
+      case 'profile':
+        return (
+          <Layout onNavigate={navigate}>
+            <Profile onNavigate={navigate} />
+          </Layout>
+        );
+      case 'userProfile':
+        return (
+          <Layout onNavigate={navigate}>
+            <UserProfile userId={selectedUserId} onNavigate={navigate} />
+          </Layout>
+        );
+      default:
+        return (
+          <Layout onNavigate={navigate}>
+            <Home onNavigate={navigate} />
+          </Layout>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {renderPage()}
     </div>
   );
-}
+};
 
-export default App
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
+  );
+};
+
+export default App;
