@@ -15,15 +15,27 @@ const postschema = new mongoose.Schema({
     },
     like:[{type:mongoose.Schema.Types.ObjectId}],
     Comment:[{
-        text:String,
-        postedBy:{type:mongoose.Schema.Types.ObjectId,
-            ref:"User"
+        text:{
+            type: String,
+            required:true
+        },
+        postedBy:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"User",
+            required:true
+        },
+        createdAt:{
+            type:Date,
+            default: Date.now
         }
     }],
     postedBy:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+        ref:"User",
+        required:true
     }
+},{
+    timestamps:true
 })
 
 const Post = mongoose.model("post",postschema)

@@ -4,7 +4,6 @@ import requireLogin from "../middleware/requireLogin.js";
 
 const router = express.Router();
 
-
 router.post("/upload", requireLogin, async (req, res) => {
   const { mediaUrl, type } = req.body;
 
@@ -16,7 +15,7 @@ router.post("/upload", requireLogin, async (req, res) => {
     });
     res.status(201).json(story);
   } catch (error) {
-    console.error("Story upload error:", error); // <-- debug
+    console.error("Story upload error:", error);
     res.status(500).json({
       message: "Error uploading story",
       error: error.message || error,
@@ -26,13 +25,13 @@ router.post("/upload", requireLogin, async (req, res) => {
 
 router.get("/my", requireLogin, async (req, res) => {
   try {
-    const stories = await Story.find({ user: req.user._id }) // <-- sirf apne stories
+    const stories = await Story.find({ user: req.Userdata._id })
       .populate("user", "name email")
       .sort({ createdAt: -1 });
 
     res.json(stories);
   } catch (error) {
-    console.error("Get my stories error:", error); // <-- debug
+    console.error("Get my stories error:", error);
     res.status(500).json({
       message: "Error fetching stories",
       error: error.message || error,
@@ -46,14 +45,15 @@ router.delete("/:id", requireLogin, async (req, res) => {
 
     if (!story) return res.status(404).json({ message: "Story not found" });
 
-    if (story.user.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: "Not Authorized" }); // <-- fix typo
+    // ✅ fixed here
+    if (story.user.toString() !== req.Userdata._id.toString()) {
+      return res.status(401).json({ message: "Not Authorized" });
     }
 
     await story.deleteOne();
     res.json({ message: "Story deleted successfully" });
   } catch (error) {
-    console.error("Delete story error:", error); // <-- debug
+    console.error("Delete story error:", error);
     res.status(500).json({
       message: "Server Error",
       error: error.message || error,
