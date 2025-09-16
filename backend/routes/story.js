@@ -45,7 +45,7 @@ router.delete("/:id", requireLogin, async (req, res) => {
 
     if (!story) return res.status(404).json({ message: "Story not found" });
 
-    // ✅ fixed here
+    
     if (story.user.toString() !== req.Userdata._id.toString()) {
       return res.status(401).json({ message: "Not Authorized" });
     }

@@ -8,24 +8,27 @@ import Postrouter from "./routes/post.js"
 import Userrouter from './routes/user.js'
 import storyrouter from './routes/story.js'
 import uploadrouter from "./routes/upload.js"
+import fileUpload from 'express-fileupload';
 
 const app = express()
 
 
 
- app.use(cors({
-    origin:['http://localhost:3000','http://127.0.0.1:3000'],
-    credentials:true,
-    methods:['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders:['Content-Type', 'Authorization']
- }))
+ app.use(cors())
  
- 
-  //middleware
+ app.use(
+    fileUpload({
+        useTempFiles:true,
+        tempFileDir:"/tmp/",
+        limits:{fileSize:5*1024*1024},
+        abortOnLimit: true
+    })
+ );
+  
  app.use(express.json({limit: '50mb'}))
  app.use(express.urlencoded({extended: true, limit:'50mb'}))
 
- async function DBConnect() {  //MongoDB Connection
+ async function DBConnect() {  
     try {
         const res=await mongoose.connect(process.env.MONGOURI)
         console.log('DB connected Succesfully')
@@ -43,6 +46,9 @@ const app = express()
     })
  })
 
+ 
+
+
  app.use(Authrouter)
  app.use(Postrouter)
  app.use(Userrouter)
@@ -52,10 +58,11 @@ const app = express()
  app.use((err, req, res,next) => {
     console.error('Server Error:', err)
     res.status(500).json({
-        error: 'Internal Server Error',
+        error: 'Index Internal Server Error',
         message: err.message
     })
  })
+
 
 
 
