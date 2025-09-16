@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Custom hook for live time updates
+
 export const useLiveTime = (initialTime, updateInterval = 60000) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 

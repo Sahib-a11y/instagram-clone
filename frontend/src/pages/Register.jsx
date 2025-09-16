@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { FaUserPlus, FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
 
 const Register = ({ onNavigate }) => {
   const { register, error, loading, clearError } = useAuth();
@@ -13,6 +14,7 @@ const Register = ({ onNavigate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [registerSuccess, setRegisterSuccess] = useState(false);
 
   useEffect(() => {
     if (error) clearError();
@@ -57,7 +59,6 @@ const Register = ({ onNavigate }) => {
       [e.target.name]: e.target.value
     });
     
-    
     if (error) clearError();
     if (formErrors[e.target.name]) {
       setFormErrors({
@@ -69,14 +70,16 @@ const Register = ({ onNavigate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
 
     const result = await register(formData.name, formData.email, formData.password);
     if (result.success) {
-      onNavigate('home');
+      setRegisterSuccess(true);
+      setTimeout(() => {
+        onNavigate('home');
+      }, 1500); // Delay navigation to allow animation to play
     }
   };
 
@@ -103,172 +106,159 @@ const Register = ({ onNavigate }) => {
   const passwordStrength = formData.password ? getPasswordStrength(formData.password) : null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-emerald-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100 p-4">
+      <div className={`max-w-md w-full space-y-8 transition-opacity duration-700 ${registerSuccess || loading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-green-600 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-            </svg>
+          <div className="mx-auto w-24 h-24 bg-green-600 rounded-full flex items-center justify-center mb-6 shadow-2xl transition-all duration-300 transform hover:scale-110">
+            <FaUserPlus className="w-12 h-12 text-white" />
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">
+          <h2 className="text-4xl font-extrabold text-white animate-slide-down">
             Create your account
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Join Connect-app and connect with friends
+          <p className="mt-2 text-gray-400 animate-slide-up">
+            Join ConnectApp and start connecting
           </p>
         </div>
         
-        <div className="bg-white p-8 rounded-xl shadow-lg space-y-6">
+        <div className="bg-gray-800 p-8 rounded-3xl shadow-2xl space-y-6 border border-gray-700 animate-fade-in-up">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              {error}
+            <div className="bg-red-900 bg-opacity-30 border border-red-800 text-red-400 px-4 py-3 rounded-xl text-sm flex items-center space-x-2 animate-fade-in">
+              <FaExclamationCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium">{error}</span>
             </div>
           )}
 
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              value={formData.name}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
-                formErrors.name ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Enter your full name"
-            />
-            {formErrors.name && (
-              <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-              onKeyPress={handleKeyPress}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
-                formErrors.email ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Enter your email"
-            />
-            {formErrors.email && (
-              <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={formData.password}
-                onChange={handleChange}
-                onKeyPress={handleKeyPress}
-                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
-                  formErrors.password ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Create a password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            
-            {/* Password strength indicator */}
-            {formData.password && passwordStrength && (
-              <div className="mt-2">
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                      style={{ width: `${(passwordStrength.level === 'weak' ? 33 : passwordStrength.level === 'medium' ? 66 : 100)}%` }}
-                    ></div>
-                  </div>
-                  <span className={`text-xs font-medium ${passwordStrength.level === 'weak' ? 'text-red-600' : passwordStrength.level === 'medium' ? 'text-yellow-600' : 'text-green-600'}`}>
-                    {passwordStrength.text}
-                  </span>
-                </div>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-300">
+                Full Name
+              </label>
+              <div className="mt-1 relative">
+                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`w-full bg-gray-700 text-gray-100 pl-10 pr-3 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
+                    formErrors.name ? 'border-red-500' : ''
+                  }`}
+                  placeholder="Enter your full name"
+                />
               </div>
-            )}
-            
-            {formErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                onKeyPress={handleKeyPress}
-                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
-                  formErrors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Confirm your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showConfirmPassword ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
-              </button>
+              {formErrors.name && (
+                <p className="mt-1 text-sm text-red-400 font-medium">{formErrors.name}</p>
+              )}
             </div>
-            {formErrors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>
-            )}
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                Email address
+              </label>
+              <div className="mt-1 relative">
+                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`w-full bg-gray-700 text-gray-100 pl-10 pr-3 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
+                    formErrors.email ? 'border-red-500' : ''
+                  }`}
+                  placeholder="name@example.com"
+                />
+              </div>
+              {formErrors.email && (
+                <p className="mt-1 text-sm text-red-400 font-medium">{formErrors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                Password
+              </label>
+              <div className="mt-1 relative">
+                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`w-full bg-gray-700 text-gray-100 pl-10 pr-10 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
+                    formErrors.password ? 'border-red-500' : ''
+                  }`}
+                  placeholder="Create a password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <FaEyeSlash className="w-5 h-5" /> : <FaEye className="w-5 h-5" />}
+                </button>
+              </div>
+              {formData.password && passwordStrength && (
+                <div className="mt-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 bg-gray-700 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                        style={{ width: `${(passwordStrength.level === 'weak' ? 33 : passwordStrength.level === 'medium' ? 66 : 100)}%` }}
+                      ></div>
+                    </div>
+                    <span className={`text-xs font-medium ${passwordStrength.level === 'weak' ? 'text-red-400' : passwordStrength.level === 'medium' ? 'text-yellow-400' : 'text-green-400'}`}>
+                      {passwordStrength.text}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {formErrors.password && (
+                <p className="mt-1 text-sm text-red-400 font-medium">{formErrors.password}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300">
+                Confirm Password
+              </label>
+              <div className="mt-1 relative">
+                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  onKeyPress={handleKeyPress}
+                  className={`w-full bg-gray-700 text-gray-100 pl-10 pr-10 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors ${
+                    formErrors.confirmPassword ? 'border-red-500' : ''
+                  }`}
+                  placeholder="Confirm your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition-colors"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <FaEyeSlash className="w-5 h-5" /> : <FaEye className="w-5 h-5" />}
+                </button>
+              </div>
+              {formErrors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-400 font-medium">{formErrors.confirmPassword}</p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center">
@@ -276,15 +266,15 @@ const Register = ({ onNavigate }) => {
               id="terms"
               name="terms"
               type="checkbox"
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              className="h-4 w-4 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-500"
             />
-            <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+            <label htmlFor="terms" className="ml-2 block text-sm text-gray-300">
               I agree to the{' '}
-              <button type="button" className="text-green-600 hover:text-green-500">
+              <button type="button" className="text-green-400 hover:text-green-300 transition-colors">
                 Terms of Service
               </button>{' '}
               and{' '}
-              <button type="button" className="text-green-600 hover:text-green-500">
+              <button type="button" className="text-green-400 hover:text-green-300 transition-colors">
                 Privacy Policy
               </button>
             </label>
@@ -294,16 +284,14 @@ const Register = ({ onNavigate }) => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {loading ? (
                 <LoadingSpinner size="sm" />
               ) : (
                 <>
                   <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                    <svg className="h-5 w-5 text-green-500 group-hover:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
+                    <FaUserPlus className="h-5 w-5 text-green-400 group-hover:text-green-300 transition-colors" />
                   </span>
                   Create Account
                 </>
@@ -312,17 +300,33 @@ const Register = ({ onNavigate }) => {
           </div>
 
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-400">
               Already have an account?{' '}
               <button
                 type="button"
                 onClick={() => onNavigate('login')}
-                className="font-medium text-green-600 hover:text-green-500 transition-colors"
+                className="font-medium text-green-400 hover:text-green-300 transition-colors"
               >
                 Sign in here
               </button>
             </p>
           </div>
+        </div>
+
+        {/* Register Status Overlay */}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-40 flex flex-col items-center justify-center rounded-3xl shadow-xl transition-opacity duration-700 ease-in-out z-50 ${loading || registerSuccess ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          {loading && !registerSuccess && (
+            <div className="flex flex-col items-center">
+              <LoadingSpinner size="lg" className="text-green-500" />
+              <p className="mt-4 text-lg font-medium text-gray-300">Creating account...</p>
+            </div>
+          )}
+          {registerSuccess && (
+            <div className="flex flex-col items-center text-green-500 animate-scale-up">
+              <FaCheckCircle className="w-16 h-16" />
+              <p className="mt-4 text-xl font-bold text-gray-100">Account Created!</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

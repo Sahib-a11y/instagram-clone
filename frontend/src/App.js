@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 
 
+
 const AppRouter = () => {
   const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');

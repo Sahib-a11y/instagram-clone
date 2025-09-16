@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TimeAgo from '../components/common/TimeAgo';
+import FollowersModal from '../components/common/FollowersModal';
 
 const Profile = ({ onNavigate }) => {
   const { user, token, updateUser } = useAuth();
@@ -18,6 +19,8 @@ const Profile = ({ onNavigate }) => {
     email: user?.email || ''
   });
   const [uploading, setUploading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'followers' or 'following'
 
   const fetchMyPosts = async () => {
     try {
@@ -46,18 +49,23 @@ const Profile = ({ onNavigate }) => {
 
   useEffect(() => {
     if (user) {
-      setStats({
-        postsCount: posts.length,
+      setStats(prev => ({
+        ...prev,
         followersCount: user.followers?.length || 0,
         followingCount: user.following?.length || 0
-      });
+      }));
       setEditForm({
         name: user.name || '',
         email: user.email || ''
       });
     }
-    fetchMyPosts();
-  }, [user, token]);
+  }, [user]);
+
+  useEffect(() => {
+    if (token) {
+      fetchMyPosts();
+    }
+  }, [token]);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) {
@@ -107,7 +115,8 @@ const Profile = ({ onNavigate }) => {
     formData.append('image', file);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/upload`, {
+      console.log()
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/upload-profile-pic`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -115,17 +124,17 @@ const Profile = ({ onNavigate }) => {
         body: formData
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
-        // Update profile picture
-        await updateProfile({ pic: data.url });
+        updateUser(data.user);
+        alert('Profile picture updated successfully!');
       } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Image upload failed');
+        alert(data.error || 'Profile picture upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Image upload failed');
+      alert('Profile picture upload failed');
     }
     setUploading(false);
   };
@@ -157,6 +166,30 @@ const Profile = ({ onNavigate }) => {
     }
   };
 
+  const handlePrivacyToggle = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isPrivate: !user.isPrivate })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        updateUser(data.user);
+      } else {
+        alert(data.error || 'Failed to update privacy settings');
+      }
+    } catch (error) {
+      console.error('Privacy toggle error:', error);
+      alert('Failed to update privacy settings');
+    }
+  };
+
   const handleSaveEdit = async () => {
     if (!editForm.name.trim()) {
       alert('Name is required');
@@ -172,13 +205,15 @@ const Profile = ({ onNavigate }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const openFollowersModal = (type) => {
+    setModalType(type);
+    setShowFollowersModal(true);
+  };
+
+  const handleEditPost = (postId) => {
+    // Implement post editing functionality
+    console.log('Edit post:', postId);
+    // You might want to navigate to an edit page or open a modal
   };
 
   if (loading) {
@@ -238,17 +273,24 @@ const Profile = ({ onNavigate }) => {
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                      {user?.name}
-                    </h1>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        {user?.name}
+                      </h1>
+                      {user?.isPrivate && (
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      )}
+                    </div>
                     <p className="text-gray-600 mb-4">{user?.email}</p>
                   </>
                 )}
               </div>
               
-              <div className="flex space-x-3">
+              <div className="flex flex-col space-y-3">
                 {isEditing ? (
-                  <>
+                  <div className="flex space-x-3">
                     <button
                       onClick={handleSaveEdit}
                       className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
@@ -267,17 +309,40 @@ const Profile = ({ onNavigate }) => {
                     >
                       Cancel
                     </button>
-                  </>
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span>Edit Profile</span>
-                  </button>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span>Edit Profile</span>
+                    </button>
+                    <button
+                      onClick={handlePrivacyToggle}
+                      className={`px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2 ${
+                        user?.isPrivate 
+                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d={user?.isPrivate 
+                            ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            : "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          } 
+                        />
+                      </svg>
+                      <span>{user?.isPrivate ? 'Make Public' : 'Make Private'}</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -288,11 +353,17 @@ const Profile = ({ onNavigate }) => {
                 <div className="text-2xl font-bold text-gray-900">{stats.postsCount}</div>
                 <div className="text-sm text-gray-600">Posts</div>
               </div>
-              <div className="text-center">
+              <div 
+                className="text-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
+                onClick={() => openFollowersModal('followers')}
+              >
                 <div className="text-2xl font-bold text-gray-900">{stats.followersCount}</div>
                 <div className="text-sm text-gray-600">Followers</div>
               </div>
-              <div className="text-center">
+              <div 
+                className="text-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
+                onClick={() => openFollowersModal('following')}
+              >
                 <div className="text-2xl font-bold text-gray-900">{stats.followingCount}</div>
                 <div className="text-sm text-gray-600">Following</div>
               </div>
@@ -308,21 +379,16 @@ const Profile = ({ onNavigate }) => {
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0V7a2 2 0 012-2h4a2 2 0 012 2v0m-6 0V7" />
                   </svg>
-                  Joined {formatDate(user?.createdAt || Date.now())}
+                  Joined <TimeAgo date={user?.createdAt} />
                 </div>
                 <div className="flex items-center space-x-4">
-                  <button 
-                    className="text-blue-600 hover:text-blue-500 font-medium"
-                    onClick={() => {/* Show followers modal */}}
-                  >
-                    View Followers
-                  </button>
-                  <button 
-                    className="text-green-600 hover:text-green-500 font-medium"
-                    onClick={() => {/* Show following modal */}}
-                  >
-                    View Following
-                  </button>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    user?.isPrivate 
+                      ? 'bg-yellow-100 text-yellow-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {user?.isPrivate ? 'Private Account' : 'Public Account'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -419,6 +485,7 @@ const Profile = ({ onNavigate }) => {
 
                 {/* Edit Button */}
                 <button
+                  onClick={() => handleEditPost(post._id)}
                   className="absolute top-3 right-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
                   title="Edit post"
                 >
@@ -431,6 +498,15 @@ const Profile = ({ onNavigate }) => {
           </div>
         )}
       </div>
+
+      {/* Followers Modal */}
+      <FollowersModal
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        userId={user?._id}
+        type={modalType}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 };

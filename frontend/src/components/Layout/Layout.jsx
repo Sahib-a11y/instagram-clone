@@ -1,151 +1,159 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { FaHome, FaUserCircle, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
 
-const Layout = ({ children, onNavigate }) => {
+const Layout = ({ children, onNavigate, activeTab }) => {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
     setShowDropdown(false);
+    setShowMobileMenu(false);
+  };
+
+  const handleNavigation = (path) => {
+    onNavigate(path);
+    setShowDropdown(false);
+    setShowMobileMenu(false);
+  };
+
+  const getNavLinkClasses = (tabName) => {
+    const baseClasses = "flex items-center w-full space-x-4 p-3 rounded-md font-medium transition-all duration-300 transform hover:scale-105";
+    const activeClasses = "text-indigo-400 bg-gray-700/50";
+    const inactiveClasses = "text-gray-400 hover:text-indigo-400 hover:bg-gray-700";
+    
+    return `${baseClasses} ${activeTab === tabName ? activeClasses : inactiveClasses}`;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <h1 
-                className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors"
-                onClick={() => onNavigate('home')}
-              >
-                SocialApp
-              </h1>
-            </div>
+    <div className="flex min-h-screen bg-gray-900 text-gray-100 font-sans">
+      {/* Fixed Sidebar */}
+      <aside className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-2xl border-r border-gray-700 z-50 flex flex-col justify-between">
+        <div className="flex flex-col items-center p-6">
+          {/* Logo */}
+          <h1
+            className="text-3xl font-extrabold text-indigo-500 cursor-pointer hover:text-indigo-400 transition-colors"
+            onClick={() => handleNavigation('home')}
+          >
+            Connect
+          </h1>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              <button
-                onClick={() => onNavigate('home')}
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                <div className="flex items-center space-x-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  <span>Home</span>
-                </div>
-              </button>
-              <button
-                onClick={() => onNavigate('profile')}
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                <div className="flex items-center space-x-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>Profile</span>
-                </div>
-              </button>
-            </nav>
-
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors p-2 rounded-md hover:bg-gray-100"
-              >
-                <img
-                  src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
-                />
-                <span className="text-sm font-medium hidden sm:block">{user?.name}</span>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu */}
-              {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50 animate-fade-in">
-                  <div className="py-1">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        onNavigate('profile');
-                        setShowDropdown(false);
-                      }}
-                      className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      My Profile
-                    </button>
-                    <hr className="my-1" />
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Navigation */}
-        <div className="md:hidden border-t border-gray-200">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          {/* Desktop Navigation */}
+          <nav className="mt-10 w-full">
             <button
-              onClick={() => onNavigate('home')}
-              className="flex items-center space-x-2 px-3 py-2 text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors w-full text-left"
+              onClick={() => handleNavigation('home')}
+              className={getNavLinkClasses('home')}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
+              <FaHome className="w-6 h-6" />
               <span>Home</span>
             </button>
             <button
-              onClick={() => onNavigate('profile')}
-              className="flex items-center space-x-2 px-3 py-2 text-base font-medium text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors w-full text-left"
+              onClick={() => handleNavigation('profile')}
+              className={getNavLinkClasses('profile')}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              <FaUserCircle className="w-6 h-6" />
               <span>Profile</span>
             </button>
-          </div>
+          </nav>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* User Menu at bottom of sidebar */}
+        <div className="relative p-6 border-t border-gray-700">
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center justify-between w-full space-x-2 text-gray-400 hover:text-white transition-colors p-3 rounded-full hover:bg-gray-700/50"
+          >
+            <img
+              src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
+              alt="Profile"
+              className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500"
+            />
+            <span className="text-base font-semibold truncate flex-grow text-left ml-2">{user?.name}</span>
+            <FaChevronDown className={`w-4 h-4 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <div className="absolute bottom-24 left-0 right-0 mx-4 w-auto bg-gray-800 rounded-lg shadow-2xl border border-gray-700 z-50 animate-fade-in-down">
+              <div className="py-2">
+                <div className="px-4 py-3 border-b border-gray-700">
+                  <p className="text-sm font-semibold text-gray-100">{user?.name}</p>
+                  <p className="text-xs text-gray-400 mt-1 truncate">{user?.email}</p>
+                </div>
+                <button
+                  onClick={() => handleNavigation('profile')}
+                  className="flex items-center w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  <FaUserCircle className="w-5 h-5 mr-3" />
+                  <span>My Profile</span>
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-900/50 transition-colors"
+                >
+                  <FaSignOutAlt className="w-5 h-5 mr-3" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-grow ml-64 p-8">
         {children}
       </main>
 
-      {/* Click outside to close dropdown */}
-      {showDropdown && (
+      {/* Mobile Menu (Overlay) */}
+      <div className={`md:hidden fixed inset-y-0 left-0 bg-gray-800 z-50 w-64 shadow-2xl transform transition-transform duration-300 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col h-full justify-between p-6">
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-indigo-500">Menu</h1>
+              <button onClick={() => setShowMobileMenu(false)} className="p-2 text-gray-400 hover:text-white">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <nav className="space-y-2">
+              <button
+                onClick={() => handleNavigation('home')}
+                className={getNavLinkClasses('home')}
+              >
+                <FaHome className="w-6 h-6" />
+                <span>Home</span>
+              </button>
+              <button
+                onClick={() => handleNavigation('profile')}
+                className={getNavLinkClasses('profile')}
+              >
+                <FaUserCircle className="w-6 h-6" />
+                <span>Profile</span>
+              </button>
+            </nav>
+          </div>
+
+          <div className="p-4 border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-900/50 transition-colors rounded-md"
+            >
+              <FaSignOutAlt className="w-5 h-5 mr-3" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
         <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowDropdown(false)}
+          className="fixed inset-0 bg-black opacity-50 z-40"
+          onClick={() => setShowMobileMenu(false)}
         />
       )}
     </div>

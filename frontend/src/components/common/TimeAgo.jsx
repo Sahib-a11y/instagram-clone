@@ -29,13 +29,13 @@ const TimeAgo = ({ date, className = "" }) => {
   };
 
   useEffect(() => {
-    // Update immediately
+    
     setTimeAgo(calculateTimeAgo(date));
 
-    // Set up interval to update every 30 seconds
+    
     const interval = setInterval(() => {
       setTimeAgo(calculateTimeAgo(date));
-    }, 30000); // Update every 30 seconds
+    }, 30000); 
 
     return () => clearInterval(interval);
   }, [date]);
