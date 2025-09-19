@@ -7,13 +7,13 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
-
-
+import ChatPage from './components/Chat/ChatPage';
 
 const AppRouter = () => {
   const { isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null);
 
   if (loading) {
     return (
@@ -23,13 +23,38 @@ const AppRouter = () => {
     );
   }
 
-  // Nf
-  const navigate = (page, userId = null) => {
+  // Navigation function
+  const navigate = (page, data = null) => {
     setCurrentPage(page);
-    if (userId) setSelectedUserId(userId);
+    
+    if (data) {
+      if (data.userId) {
+        setSelectedUserId(data.userId);
+      }
+      if (data.conversation) {
+        setSelectedConversation(data.conversation);
+      }
+    } else {
+      // Reset data when navigating without specific data
+      setSelectedUserId(null);
+      setSelectedConversation(null);
+    }
   };
 
-  //current page ko render kree gaa
+  // Get active tab based on current page
+  const getActiveTab = () => {
+    switch (currentPage) {
+      case 'profile':
+      case 'userProfile':
+        return 'profile';
+      case 'chat':
+        return 'chat';
+      default:
+        return 'home';
+    }
+  };
+
+  // Render current page
   const renderPage = () => {
     if (!isAuthenticated) {
       switch (currentPage) {
@@ -42,33 +67,28 @@ const AppRouter = () => {
 
     switch (currentPage) {
       case 'profile':
-        return (
-          <Layout onNavigate={navigate}>
-            <Profile onNavigate={navigate} />
-          </Layout>
-        );
+        return <Profile onNavigate={navigate} />;
       case 'userProfile':
-        return (
-          <Layout onNavigate={navigate}>
-            <UserProfile userId={selectedUserId} onNavigate={navigate} />
-          </Layout>
-        );
+        return <UserProfile userId={selectedUserId} onNavigate={navigate} />;
+      case 'chat':
+        return <ChatPage onNavigate={navigate} initialConversation={selectedConversation} />;
       default:
-        return (
-          <Layout onNavigate={navigate}>
-            <Home onNavigate={navigate} />
-          </Layout>
-        );
+        return <Home onNavigate={navigate} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {renderPage()}
+      {isAuthenticated ? (
+        <Layout onNavigate={navigate} activeTab={getActiveTab()}>
+          {renderPage()}
+        </Layout>
+      ) : (
+        renderPage()
+      )}
     </div>
   );
 };
-
 
 const App = () => {
   return (

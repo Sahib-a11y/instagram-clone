@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { FaEnvelope } from 'react-icons/fa';
 
 const UserProfile = ({ userId, onNavigate }) => {
   const { user: currentUser, token } = useAuth();
@@ -9,6 +10,7 @@ const UserProfile = ({ userId, onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [messageLoading, setMessageLoading] = useState(false);
 
   const fetchUserProfile = async () => {
     if (!userId) return;
@@ -80,6 +82,42 @@ const UserProfile = ({ userId, onNavigate }) => {
     setFollowLoading(false);
   };
 
+  // Handle message button click
+  const handleMessageClick = async () => {
+    if (!userProfile || !currentUser) return;
+    
+    setMessageLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          participantId: userId
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Conversation created:', data.conversation);
+        // Navigate to chat page with the conversation data
+        onNavigate('chat', { 
+          conversation: data.conversation,
+          userId: userId 
+        });
+      } else {
+        alert(data.error || 'Failed to start conversation');
+      }
+    } catch (error) {
+      console.error('Message error:', error);
+      alert('Failed to start conversation');
+    }
+    setMessageLoading(false);
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -131,23 +169,41 @@ const UserProfile = ({ userId, onNavigate }) => {
               </h1>
               
               {!isOwnProfile && (
-                <button
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isFollowing
-                      ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {followLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : isFollowing ? (
-                    'Unfollow'
-                  ) : (
-                    'Follow'
-                  )}
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    className={`px-6 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isFollowing
+                        ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {followLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : isFollowing ? (
+                      'Unfollow'
+                    ) : (
+                      'Follow'
+                    )}
+                  </button>
+                  
+                  {/* Message Button */}
+                  <button
+                    onClick={handleMessageClick}
+                    disabled={messageLoading}
+                    className="px-6 py-2 bg-green-600 text-white rounded-md font-medium transition-colors hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {messageLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <>
+                        <FaEnvelope className="w-4 h-4" />
+                        <span>Message</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
             

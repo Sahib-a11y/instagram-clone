@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FaHome, FaUserCircle, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import { FaHome, FaUserCircle, FaSignOutAlt, FaChevronDown, FaComments } from 'react-icons/fa';
 
 const Layout = ({ children, onNavigate, activeTab }) => {
   const { user, logout } = useAuth();
@@ -56,6 +56,13 @@ const Layout = ({ children, onNavigate, activeTab }) => {
               <FaUserCircle className="w-6 h-6" />
               <span>Profile</span>
             </button>
+            <button
+              onClick={() => handleNavigation('chat')}
+              className={getNavLinkClasses('chat')}
+            >
+              <FaComments className="w-6 h-6" />
+              <span>Messages</span>
+            </button>
           </nav>
         </div>
 
@@ -88,6 +95,13 @@ const Layout = ({ children, onNavigate, activeTab }) => {
                 >
                   <FaUserCircle className="w-5 h-5 mr-3" />
                   <span>My Profile</span>
+                </button>
+                <button
+                  onClick={() => handleNavigation('chat')}
+                  className="flex items-center w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  <FaComments className="w-5 h-5 mr-3" />
+                  <span>Messages</span>
                 </button>
                 <button
                   onClick={handleLogout}
@@ -133,6 +147,13 @@ const Layout = ({ children, onNavigate, activeTab }) => {
               >
                 <FaUserCircle className="w-6 h-6" />
                 <span>Profile</span>
+              </button>
+              <button
+                onClick={() => handleNavigation('chat')}
+                className={getNavLinkClasses('chat')}
+              >
+                <FaComments className="w-6 h-6" />
+                <span>Messages</span>
               </button>
             </nav>
           </div>
