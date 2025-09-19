@@ -23,6 +23,20 @@ const userschema = new mongoose.Schema({
         default:false
     },
 
+    isOnline:{
+        type:Boolean,
+        default: false
+    },
+
+    lastActive:{
+        type: Date,
+        default: Date.now
+    },
+    socketId: {
+        type: String,
+        default: null
+    },
+
     followers:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User"
