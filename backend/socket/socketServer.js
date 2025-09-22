@@ -15,14 +15,13 @@ class SocketServer {
             transports: ['websocket', 'polling']
         });
 
-        this.users = new Map(); // userId -> { socketId, user }
-        this.typingUsers = new Map(); // conversationId -> Set of userIds
+        this.users = new Map(); // userId ------> { socketId, user }
+        this.typingUsers = new Map(); // conversationId -----------> Set of userIds
         
         this.setupSocketHandlers();
     }
 
-    setupSocketHandlers() {
-        // Authentication middleware
+    setupSocketHandlers() {   ///auth middlewre
         this.io.use(async (socket, next) => {
             try {
                 const token = socket.handshake.auth.token;
@@ -41,13 +40,13 @@ class SocketServer {
                 socket.userData = user;
                 next();
             } catch (error) {
-                console.error('Socket authentication error:', error);
+                // console.error('Socket authentication error:', error);
                 next(new Error('Authentication error'));
             }
         });
 
         this.io.on('connection', (socket) => {
-            console.log(`🔌 User connected: ${socket.userData.name} (${socket.userId})`);
+            // console.log(`User connected: ${socket.userData.name} (${socket.userId})`);
             this.handleConnection(socket);
         });
     }
@@ -56,31 +55,29 @@ class SocketServer {
         const userId = socket.userId;
         const userData = socket.userData;
 
-        // Store user connection
-        this.users.set(userId, { 
+        
+        this.users.set(userId, {   //connection stored of user
             socketId: socket.id, 
             user: userData,
             lastSeen: new Date()
         });
 
-        // Update user online status
+        
         await this.updateUserOnlineStatus(userId, true, socket.id);
 
-        // Join user to their personal room
+        
         socket.join(`user_${userId}`);
 
-        // Notify connections about online status
         await this.broadcastOnlineStatus(userId, true);
 
-        // Socket event handlers
         this.setupSocketEventHandlers(socket);
     }
 
     setupSocketEventHandlers(socket) {
         const userId = socket.userId;
 
-        // Handle joining conversation rooms
-        socket.on('join_conversation', async (conversationId) => {
+        
+        socket.on('join_conversation', async (conversationId) => {  // hndle converstion of user
             try {
                 const conversation = await Conversation.findOne({
                     _id: conversationId,
@@ -89,31 +86,30 @@ class SocketServer {
 
                 if (conversation) {
                     socket.join(`conversation_${conversationId}`);
-                    console.log(`📨 User ${userId} joined conversation ${conversationId}`);
+                    // console.log(`User ${userId} joined conversation ${conversationId}`);
                 }
             } catch (error) {
-                console.error('Join conversation error:', error);
+                // console.error('Join conversation error:', error);
             }
         });
 
-        // Handle leaving conversation rooms
-        socket.on('leave_conversation', (conversationId) => {
+        
+        socket.on('leave_conversation', (conversationId) => {   //handle lft conversation 
             socket.leave(`conversation_${conversationId}`);
-            console.log(`📤 User ${userId} left conversation ${conversationId}`);
+            // console.log(`User ${userId} left conversation ${conversationId}`);
         });
 
-        // Handle sending messages
-        socket.on('send_message', async (data) => {
+        
+        socket.on('send_message', async (data) => {    //hndle snd mssg
             try {
                 await this.handleSendMessage(socket, data);
             } catch (error) {
-                console.error('Send message error:', error);
+                // console.error('Send message error:', error);
                 socket.emit('message_error', { error: 'Failed to send message', tempId: data.tempId });
             }
         });
 
-        // Handle typing indicators
-        socket.on('typing_start', (data) => {
+        socket.on('typing_start', (data) => {   //hndle typing indicator
             this.handleTypingStart(socket, data);
         });
 
@@ -121,17 +117,16 @@ class SocketServer {
             this.handleTypingStop(socket, data);
         });
 
-        // Handle message read status
-        socket.on('mark_messages_read', async (data) => {
+    
+        socket.on('mark_messages_read', async (data) => {  //hndle read mssg
             try {
                 await this.handleMarkMessagesRead(socket, data);
             } catch (error) {
-                console.error('Mark messages read error:', error);
+                // console.error('Mark messages read error:', error);
             }
         });
 
-        // Handle disconnect
-        socket.on('disconnect', () => {
+        socket.on('disconnect', () => { //hndle disconnect
             this.handleDisconnection(socket);
         });
     }
@@ -140,24 +135,24 @@ class SocketServer {
         const { conversationId, content, tempId } = data;
         const userId = socket.userId;
 
-        console.log(`📤 User ${userId} sending message to conversation ${conversationId}:`, content);
+        // console.log(`User ${userId} sending message to conversation ${conversationId}:`, content);
 
-        // Verify conversation access
+        
         const conversation = await Conversation.findOne({
             _id: conversationId,
             participants: userId
         });
 
         if (!conversation) {
-            console.error('Conversation not found or access denied');
+            // console.error('Conversation not found or access denied');
             socket.emit('message_error', { error: 'Conversation not found', tempId });
             return;
         }
 
-        // Check message permissions
+        
         if (conversation.isMessageRequest && !conversation.requestAccepted && 
             conversation.requestFrom.toString() !== userId) {
-            console.error('Cannot send message to unaccepted request');
+            // console.error('Cannot send message to unaccepted request');
             socket.emit('message_error', { error: 'Cannot send message to unaccepted request', tempId });
             return;
         }
@@ -179,7 +174,7 @@ class SocketServer {
             conversation.lastActivity = new Date();
             await conversation.save();
 
-            console.log(`✅ Message saved: ${message._id}`);
+            // console.log(`Message saved: ${message._id}`);
 
             // Send to all participants in the conversation
             this.io.to(`conversation_${conversationId}`).emit('new_message', {
@@ -187,10 +182,10 @@ class SocketServer {
                 tempId
             });
 
-            console.log(`📨 Message broadcasted to conversation ${conversationId}`);
+            // console.log(`📨 Message broadcasted to conversation ${conversationId}`);
 
         } catch (error) {
-            console.error('Error saving message:', error);
+            // console.error('Error saving message:', error);
             socket.emit('message_error', { error: 'Failed to save message', tempId });
         }
     }
@@ -199,7 +194,7 @@ class SocketServer {
         const { conversationId } = data;
         const userId = socket.userId;
 
-        console.log(`⌨️ User ${userId} started typing in conversation ${conversationId}`);
+        // console.log(`User ${userId} started typing in conversation ${conversationId}`);
 
         if (!this.typingUsers.has(conversationId)) {
             this.typingUsers.set(conversationId, new Set());
@@ -207,15 +202,14 @@ class SocketServer {
 
         this.typingUsers.get(conversationId).add(userId);
 
-        // Broadcast to others in conversation (except sender)
         socket.to(`conversation_${conversationId}`).emit('user_typing', {
             conversationId,
             userId,
             user: socket.userData
         });
 
-        // Clear typing after 3 seconds of inactivity
-        setTimeout(() => {
+
+        setTimeout(() => {   //clear typing indicator when not in use
             if (this.typingUsers.has(conversationId) && this.typingUsers.get(conversationId).has(userId)) {
                 this.handleTypingStop(socket, data);
             }
@@ -226,7 +220,7 @@ class SocketServer {
         const { conversationId } = data;
         const userId = socket.userId;
 
-        console.log(`💤 User ${userId} stopped typing in conversation ${conversationId}`);
+        // console.log(`User ${userId} stopped typing in conversation ${conversationId}`);
 
         if (this.typingUsers.has(conversationId)) {
             this.typingUsers.get(conversationId).delete(userId);
@@ -248,7 +242,7 @@ class SocketServer {
         const userId = socket.userId;
 
         try {
-            // Mark messages as read
+            
             const result = await Message.updateMany(
                 {
                     conversation: conversationId,
@@ -265,9 +259,9 @@ class SocketServer {
                 }
             );
 
-            console.log(`📖 User ${userId} marked messages as read in conversation ${conversationId}`);
+            // console.log(`User ${userId} marked messages as read in conversation ${conversationId}`);
 
-            // Notify other participants
+            
             socket.to(`conversation_${conversationId}`).emit('messages_read', {
                 conversationId,
                 readBy: userId,
@@ -275,7 +269,7 @@ class SocketServer {
             });
 
         } catch (error) {
-            console.error('Error marking messages as read:', error);
+            // console.error('Error marking messages as read:', error);
         }
     }
 
@@ -283,19 +277,14 @@ class SocketServer {
         const userId = socket.userId;
         
         if (this.users.has(userId)) {
-            console.log(`🔌 User disconnected: ${socket.userData.name} (${userId})`);
+            console.log(`User disconnected: ${socket.userData.name} (${userId})`);
             
-            // Remove from users map
+            
             this.users.delete(userId);
-            
-            // Update user offline status
             await this.updateUserOnlineStatus(userId, false);
-            
-            // Notify connections about offline status
             await this.broadcastOnlineStatus(userId, false);
             
-            // Clear typing indicators
-            this.clearUserFromTyping(userId);
+            this.clearUserFromTyping(userId);   //clr typing indicotor
         }
     }
 
@@ -306,9 +295,9 @@ class SocketServer {
                 lastActive: new Date(),
                 socketId: isOnline ? socketId : null
             });
-            console.log(`🟢 User ${userId} status updated: ${isOnline ? 'Online' : 'Offline'}`);
+            // console.log(`User ${userId} status updated: ${isOnline ? 'Online' : 'Offline'}`);
         } catch (error) {
-            console.error('Update online status error:', error);
+            // console.error('Update online status error:', error);
         }
     }
 
@@ -321,8 +310,7 @@ class SocketServer {
             const connections = [...user.followers, ...user.following];
             const uniqueConnections = [...new Set(connections.map(u => u._id.toString()))];
 
-            // Notify all connected friends about status change
-            uniqueConnections.forEach(connectionId => {
+            uniqueConnections.forEach(connectionId => {  //notify all cnnected friends
                 const connection = this.users.get(connectionId);
                 if (connection) {
                     this.io.to(connection.socketId).emit('user_status_change', {
@@ -333,10 +321,10 @@ class SocketServer {
                 }
             });
 
-            console.log(`📢 Broadcasted status change for user ${userId}: ${isOnline ? 'Online' : 'Offline'}`);
+            console.log(`status change for user ${userId}: ${isOnline ? 'Online' : 'Offline'}`);
 
         } catch (error) {
-            console.error('Broadcast online status error:', error);
+            console.error('online status error:', error);
         }
     }
 
@@ -345,8 +333,8 @@ class SocketServer {
             if (typingUsers.has(userId)) {
                 typingUsers.delete(userId);
                 
-                // Notify others that user stopped typing
-                this.io.to(`conversation_${conversationId}`).emit('user_stop_typing', {
+                
+                this.io.to(`conversation_${conversationId}`).emit('user_stop_typing', {  //notfy other when stoppd typing indicator
                     conversationId,
                     userId
                 });
@@ -372,8 +360,8 @@ class SocketServer {
         return onlineUsers;
     }
 
-    // Method to get socket instance for other parts of the app
-    getIO() {
+    
+    getIO() {  //methd to get socket for parts of the app
         return this.io;
     }
 }

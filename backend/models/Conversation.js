@@ -30,8 +30,8 @@ const conversationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for better performance
-conversationSchema.index({ participants: 1 });
+
+conversationSchema.index({ participants: 1 });  //index addedfor speed
 conversationSchema.index({ lastActivity: -1 });
 
 const Conversation = mongoose.model("Conversation", conversationSchema);

@@ -15,7 +15,7 @@ router.post("/upload", requireLogin, async (req, res) => {
     });
     res.status(201).json(story);
   } catch (error) {
-    console.error("Story upload error:", error);
+    // console.error("Story upload error:", error);
     res.status(500).json({
       message: "Error uploading story",
       error: error.message || error,
@@ -31,7 +31,7 @@ router.get("/my", requireLogin, async (req, res) => {
 
     res.json(stories);
   } catch (error) {
-    console.error("Get my stories error:", error);
+    // console.error("Get my stories error:", error);
     res.status(500).json({
       message: "Error fetching stories",
       error: error.message || error,
@@ -53,7 +53,7 @@ router.delete("/:id", requireLogin, async (req, res) => {
     await story.deleteOne();
     res.json({ message: "Story deleted successfully" });
   } catch (error) {
-    console.error("Delete story error:", error);
+    // console.error("Delete story error:", error);
     res.status(500).json({
       message: "Server Error",
       error: error.message || error,

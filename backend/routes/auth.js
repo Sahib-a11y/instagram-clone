@@ -85,7 +85,7 @@ router.post("/signin", async (req, res) => {
         }
 
     } catch (err) {
-        console.log("Signin error:", err)
+        // console.log("Signin error:", err)
         return res.status(500).json({ error: "Internal server error" })
     }
 })
@@ -95,7 +95,7 @@ router.get("/profile", requireLogin, async (req, res) => {
         const user = await User.findById(req.Userdata._id).select("-password")
         res.json({ user })
     } catch (error) {
-        console.log("Profile error:", error)
+        // console.log("Profile error:", error)
         return res.status(500).json({ error: "Internal server error" })
     }
 })
@@ -115,7 +115,7 @@ router.put("/updateProfile", requireLogin, async (req, res) => {
             user: updatedUser
         })
     } catch (error) {
-        console.log("Update profile error:", error)
+        // console.log("Update profile error:", error)
         return res.status(500).json({ error: "Internal server error" })
     }
 })

@@ -16,10 +16,11 @@ import SocketServer from './socket/socketServer.js';
 const app = express()
 const server = createServer(app)
 
-// Initialize Socket Server
+
 const socketServer = new SocketServer(server);
 
 app.use(cors())
+
 app.use(
     fileUpload({
         useTempFiles: true,
@@ -58,11 +59,11 @@ app.use(storyrouter)
 app.use(uploadrouter)
 app.use(chatrouter)
 
-// Make socket.io instance available to routes if needed
-app.set('socketio', socketServer.getIO());
+
+app.set('socketio', socketServer.getIO());  //socket for routes if need
 
 app.use((err, req, res, next) => {
-    console.error('Server Error:', err)
+    // console.error('Server Error:', err)
     res.status(500).json({
         error: 'Internal Server Error',
         message: err.message

@@ -7,14 +7,13 @@ import cloudinary from "cloudinary";
 
 const router = Router()
 
-// Cloudinary Configuration
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Search Users
+
 router.get("/search", requireLogin, async(req, res) => {
     try {
         const { query } = req.query;
@@ -35,12 +34,12 @@ router.get("/search", requireLogin, async(req, res) => {
 
         res.json({ users });
     } catch (error) {
-        console.log("Search users error:", error);
+        // console.log("Search users error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
 
-// Get User Suggestions
+
 router.get("/suggestions", requireLogin, async(req, res) => {
     try {
         const currentUser = req.Userdata;
@@ -58,39 +57,38 @@ router.get("/suggestions", requireLogin, async(req, res) => {
 
         res.json({ suggestions });
     } catch (error) {
-        console.log("Get suggestions error:", error);
+        // console.log("Get suggestions error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
 
-// Update Profile Picture - SEPARATE ROUTE WITH FILE UPLOAD MIDDLEWARE
 router.post("/upload-profile-pic", 
     fileUpload({ 
         useTempFiles: true,
         tempFileDir: '/tmp/',
         limits: { fileSize: 10 * 1024 * 1024 },
         abortOnLimit: true,
-        debug: true // Add debug for troubleshooting
+        debug: true // debug for troubleshoot
     }), 
     requireLogin, 
     async(req, res) => {
     try {
-        console.log("🔥 Profile pic upload route hit");
-        console.log("🔥 Request files:", req.files);
-        console.log("🔥 Request body:", req.body);
+        // console.log("Profile pic upload route hit");
+        // console.log("Request files:", req.files);
+        // console.log("Request body:", req.body);
 
         if (!req.files || !req.files.image) {
-            console.log("❌ No files found");
+            // console.log("No files found");
             return res.status(400).json({ error: "No image file provided" });
         }
 
         const file = req.files.image;
-        console.log("🔥 File details:", {
-            name: file.name,
-            mimetype: file.mimetype,
-            size: file.size,
-            tempFilePath: file.tempFilePath
-        });
+        // console.log("File details:", {
+        //     name: file.name,
+        //     mimetype: file.mimetype,
+        //     size: file.size,
+        //     tempFilePath: file.tempFilePath
+        // });
 
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -103,12 +101,12 @@ router.post("/upload-profile-pic",
             return res.status(400).json({ error: "File too large. Maximum size is 5MB." });
         }
 
-        console.log("🔥 Uploading profile picture to Cloudinary...");
-        console.log("🔥 Cloudinary config check:", {
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
-            api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
-            api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
-        });
+        // console.log("Uploading profile picture to Cloudinary...");
+        // console.log("Cloudinary config check:", {
+        //     cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+        //     api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+        //     api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+        // });
 
         // Upload to Cloudinary
         const result = await cloudinary.v2.uploader.upload(file.tempFilePath, {
@@ -120,7 +118,7 @@ router.post("/upload-profile-pic",
             ]
         });
 
-        console.log("✅ Cloudinary upload successful:", result.secure_url);
+        // console.log("Cloudinary upload successful:", result.secure_url);
 
         // Update user's profile picture
         const updatedUser = await User.findByIdAndUpdate(
@@ -129,7 +127,7 @@ router.post("/upload-profile-pic",
             { new: true }
         ).select("-password");
 
-        console.log("✅ User profile updated");
+        // console.log("User profile updated");
 
         res.json({
             success: true,
@@ -139,7 +137,7 @@ router.post("/upload-profile-pic",
         });
 
     } catch (error) {
-        console.error("❌ Profile picture upload error:", error);
+        // console.error("Profile picture upload error:", error);
         res.status(500).json({ 
             error: "Profile picture upload failed", 
             details: error.message 
@@ -147,7 +145,7 @@ router.post("/upload-profile-pic",
     }
 });
 
-// Update Profile Privacy
+
 router.put("/privacy", requireLogin, async(req, res) => {
     try {
         const { isPrivate } = req.body;
@@ -163,12 +161,12 @@ router.put("/privacy", requireLogin, async(req, res) => {
             user: updatedUser
         });
     } catch (error) {
-        console.log("Update privacy error:", error);
+        // console.log("Update privacy error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
 
-// Get User Profile
+
 router.get("/user/:id", requireLogin, async(req, res) => {
     try {
         const targetUserId = req.params.id;
@@ -225,12 +223,12 @@ router.get("/user/:id", requireLogin, async(req, res) => {
             isFollowing
         });
     } catch (error) {
-        console.log("Get user profile error:", error);
+        // console.log("Get user profile error:", error);
         return res.status(500).json({error: "Internal server error"});
     }    
 });
 
-// Send Follow Request / Follow User
+
 router.put('/follow', requireLogin, async(req, res) => {
     try {
         const { followId } = req.body;
@@ -266,12 +264,12 @@ router.put('/follow', requireLogin, async(req, res) => {
             msg: targetUser.isPrivate ? "Follow request sent" : "Successfully followed user"
         });
     } catch (error) {
-        console.log("Follow error:", error);
+        // console.log("Follow error:", error);
         return res.status(500).json({error: "Internal server error"});
     }
 });
 
-// Unfollow User
+
 router.put('/unfollow', requireLogin, async(req, res) => {
     try {
         const { UnfollowId } = req.body;
@@ -289,12 +287,12 @@ router.put('/unfollow', requireLogin, async(req, res) => {
             msg: "Successfully unfollowed user"
         });
     } catch (error) {
-        console.log("Unfollow error:", error);
+        // console.log("Unfollow error:", error);
         return res.status(500).json({error: "Internal server error"});
     }
 });
 
-// Get Followers List
+
 router.get('/followers/:userId', requireLogin, async(req, res) => {
     try {
         const { userId } = req.params;
@@ -321,12 +319,12 @@ router.get('/followers/:userId', requireLogin, async(req, res) => {
             followers: user.followers
         });
     } catch (error) {
-        console.log("Get followers error:", error);
+        // console.log("Get followers error:", error);
         return res.status(500).json({error: "Internal server error"});
     }
 });
 
-// Get Following List
+
 router.get('/following/:userId', requireLogin, async(req, res) => {
     try {
         const { userId } = req.params;
@@ -353,7 +351,7 @@ router.get('/following/:userId', requireLogin, async(req, res) => {
             following: user.following
         });
     } catch (error) {
-        console.log("Get following error:", error);
+        // console.log("Get following error:", error);
         return res.status(500).json({error: "Internal server error"});
     }
 });

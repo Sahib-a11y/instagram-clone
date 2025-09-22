@@ -15,7 +15,7 @@ console.log("Config:", {
 });
 
 //text uploading....
-cloudinary.v2.uploader.upload("https://via.placeholder.com/150", function(error, result) {
+cloudinary.v2.uploader.upload("./test-image.png", function(error, result) {
   if (error) {
     console.error("Cloudinary test failed:", error);
   } else {

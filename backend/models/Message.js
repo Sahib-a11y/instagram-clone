@@ -50,7 +50,7 @@ const messageSchema = new mongoose.Schema({
     toJSON: { 
         virtuals: true,
         transform: function(doc, ret) {
-            // Ensure readBy is always an array
+            
             if (!ret.readBy) {
                 ret.readBy = [];
             }
@@ -68,20 +68,20 @@ const messageSchema = new mongoose.Schema({
     }
 });
 
-// Virtual for checking if message is read by a specific user
-messageSchema.virtual('isRead').get(function() {
-    // Safely check if readBy exists and has items
-    return this.readBy && Array.isArray(this.readBy) && this.readBy.length > 0;
+
+messageSchema.virtual('isRead').get(function() { //for message read by user
+    
+    return this.readBy && Array.isArray(this.readBy) && this.readBy.length > 0;  //check for read message by existing user
 });
 
-// Virtual to check if message is read by current user
-messageSchema.virtual('isReadByCurrentUser').get(function() {
+
+messageSchema.virtual('isReadByCurrentUser').get(function() { // check for mssg readby curr user
     // This will be populated dynamically in the route
     return false;
 });
 
-// Ensure readBy is always initialized as an array
-messageSchema.pre('save', function(next) {
+
+messageSchema.pre('save', function(next) {   //save in as array
     if (this.isNew && !this.readBy) {
         this.readBy = [];
     }
@@ -91,8 +91,8 @@ messageSchema.pre('save', function(next) {
     next();
 });
 
-// Indexes for better performance
-messageSchema.index({ conversation: 1, createdAt: -1 });
+
+messageSchema.index({ conversation: 1, createdAt: -1 });  //message index for speed
 messageSchema.index({ sender: 1 });
 messageSchema.index({ createdAt: -1 });
 
