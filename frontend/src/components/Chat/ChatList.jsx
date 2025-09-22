@@ -74,7 +74,7 @@ const ChatList = ({ onSelectConversation, onNavigate, refreshTrigger, onNewConve
     }
   }, [token, refreshTrigger]);
 
-  // Add new conversation to the list when created
+  
   useEffect(() => {
     if (onNewConversation) {
       setConversations(prev => {
@@ -262,7 +262,7 @@ const ChatList = ({ onSelectConversation, onNavigate, refreshTrigger, onNewConve
         </div>
       </div>
 
-      {/* Search Button */}
+      {/* Search btn */}
       <div className="p-4 border-b border-gray-200">
         <button
           onClick={() => setShowSearch(true)}

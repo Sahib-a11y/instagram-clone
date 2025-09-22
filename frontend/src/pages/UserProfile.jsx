@@ -43,7 +43,7 @@ const UserProfile = ({ userId, onNavigate }) => {
         setError(errorData.msg || 'Failed to fetch user profile');
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      // console.error('Error fetching user profile:', error);
       setError('Network error occurred');
     }
     setLoading(false);
@@ -75,7 +75,7 @@ const UserProfile = ({ userId, onNavigate }) => {
       if (response.ok) {
         setIsFollowing(!isFollowing);
 
-        // Update follower count locally
+        
         setUserProfile(prev => ({
           ...prev,
           followers: isFollowing
@@ -87,7 +87,7 @@ const UserProfile = ({ userId, onNavigate }) => {
         alert(errorData.msg || 'Failed to update follow status');
       }
     } catch (error) {
-      console.error('Follow error:', error);
+      // console.error('Follow error:', error);
       alert('Failed to update follow status');
     }
     setFollowLoading(false);
@@ -135,10 +135,10 @@ const UserProfile = ({ userId, onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 py-12 px-4 sm:px-6 lg:px-8">
-      {/* Profile Header */}
+      
       <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-8 transform transition-all duration-300 hover:scale-[1.01]">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-10 md:space-y-0 md:space-x-12">
-          {/* Profile Picture */}
+          
           <div className="flex-shrink-0 relative">
             <div className="w-40 h-40 rounded-full p-2 bg-gradient-to-tr from-lime-200 to-pink-200 shadow-lg">
               <img
@@ -223,7 +223,7 @@ const UserProfile = ({ userId, onNavigate }) => {
               </div>
             </div>
 
-            {/* Bio Section */}
+            
             <div className="bg-gray-50 rounded-lg p-5 mt-8 border border-gray-200">
               <p className="text-gray-600 text-sm mb-3">
                 {isOwnProfile ? "This is your profile page." : `Welcome to ${userProfile.name}'s profile!`}
@@ -245,7 +245,7 @@ const UserProfile = ({ userId, onNavigate }) => {
         </div>
       </div>
 
-      {/* Posts Section */}
+      
       <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl">
         <div className="border-b border-gray-200 px-8 py-6 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">
@@ -332,11 +332,11 @@ const UserProfile = ({ userId, onNavigate }) => {
                   </div>
                 </div>
 
-                {/* Click overlay for post details */}
+                
                 <div
                   className="absolute inset-0 cursor-pointer"
                   onClick={() => {
-                    // Implement post detail modal here
+                    
                     console.log('Post clicked:', post._id);
                   }}
                 />
@@ -346,7 +346,7 @@ const UserProfile = ({ userId, onNavigate }) => {
         )}
       </div>
 
-      {/* Navigation and Connection Status Section */}
+      
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-center space-x-4 my-6">
           <button

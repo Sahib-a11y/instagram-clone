@@ -16,7 +16,7 @@ import {
   FaFeather,
 } from 'react-icons/fa';
 
-// Reusable IconButton component
+
 const IconButton = ({ children, onClick, className = '', disabled, tooltip = '' }) => (
   <button
     onClick={onClick}
@@ -61,8 +61,9 @@ const CreatePost = ({ onPostCreated }) => {
     reader.onload = (e) => setPreviewImage(e.target.result);
     reader.readAsDataURL(file);
   };
-
+  
   const handleSubmit = async () => {
+    
     if (!formData.title.trim() || !formData.body.trim()) {
       alert('Please fill in title and description');
       return;
@@ -79,6 +80,8 @@ const CreatePost = ({ onPostCreated }) => {
     uploadFormData.append('body', formData.body.trim());
     uploadFormData.append('image', selectedFile);
 
+    console.log("FormData entries:", [...uploadFormData.entries()]);
+
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/createPost`, {
         method: 'POST',
@@ -87,8 +90,11 @@ const CreatePost = ({ onPostCreated }) => {
         },
         body: uploadFormData,
       });
+      // console.log('Response status:', response.status);
+      // console.log('Response headers:', Object.fromEntries(response.headers.entries())) 
 
       const data = await response.json();
+      // console.log("response data:", data)
 
       if (response.ok) {
         setFormData({ title: '', body: '' });
@@ -100,7 +106,7 @@ const CreatePost = ({ onPostCreated }) => {
         alert(data.error || data.message || 'Failed to create post');
       }
     } catch (error) {
-      console.error('Create post error:', error);
+      // console.error('Create post error:', error);
       alert('Failed to create post: ' + error.message);
     }
     setLoading(false);
@@ -263,7 +269,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         alert(data.error || 'Failed to update like status');
       }
     } catch (error) {
-      console.error('Like error:', error);
+      // console.error('Like error:', error);
       alert('Network error occurred');
     }
   };
@@ -291,11 +297,11 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         setNewComment('');
       } else {
         const errorData = await response.json();
-        console.error('Comment error:', errorData);
+        // console.error('Comment error:', errorData);
         alert('Failed to add comment');
       }
     } catch (error) {
-      console.error('Comment error:', error);
+      // console.error('Comment error:', error);
       alert('Failed to add comment');
     }
     setCommentLoading(false);
@@ -474,10 +480,10 @@ const Home = ({ onNavigate }) => {
         setPosts(data.posts || []);
       } else {
         const errorData = await response.json();
-        console.error('Fetch posts error:', errorData);
+        // console.error('Fetch posts error:', errorData);
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      // console.error('Error fetching posts:', error);
     }
     setLoading(false);
     if (showRefreshLoader) setRefreshing(false);

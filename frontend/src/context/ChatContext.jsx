@@ -356,8 +356,8 @@ export const ChatProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use chat context
-export const useChat = () => {
+ 
+export const useChat = () => {  //custm hook for chat
   const context = useContext(ChatContext);
   if (!context) {
     throw new Error('useChat must be used within a ChatProvider');

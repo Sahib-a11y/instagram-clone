@@ -211,9 +211,9 @@ const Profile = ({ onNavigate }) => {
   };
 
   const handleEditPost = (postId) => {
-    // Implement post editing functionality
+    
     console.log('Edit post:', postId);
-    // You might want to navigate to an edit page or open a modal
+    
   };
 
   if (loading) {
@@ -226,10 +226,10 @@ const Profile = ({ onNavigate }) => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Profile Header */}
+      
       <div className="bg-white rounded-lg shadow-md p-8 mb-6">
         <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-          {/* Profile Picture */}
+          
           <div className="flex-shrink-0 relative">
             <img
               src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
@@ -256,7 +256,7 @@ const Profile = ({ onNavigate }) => {
             )}
           </div>
 
-          {/* Profile Info */}
+          
           <div className="flex-1 text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
               <div>
@@ -347,7 +347,7 @@ const Profile = ({ onNavigate }) => {
               </div>
             </div>
             
-            {/* Stats */}
+            
             <div className="flex justify-center md:justify-start space-x-8 mb-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.postsCount}</div>
@@ -369,7 +369,7 @@ const Profile = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* Bio Section */}
+            
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-gray-700 text-sm mb-3">
                 Welcome to my profile! I love sharing moments and connecting with friends.
@@ -396,7 +396,7 @@ const Profile = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Posts Section */}
+      
       <div className="bg-white rounded-lg shadow-md">
         <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">My Posts</h2>
@@ -445,7 +445,7 @@ const Profile = ({ onNavigate }) => {
                   )}
                 </div>
 
-                {/* Post Info Overlay */}
+                
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end">
                   <div className="text-white p-4 w-full">
                     <h3 className="font-semibold mb-1 truncate">{post.title}</h3>
@@ -472,7 +472,7 @@ const Profile = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* Delete Button */}
+                
                 <button
                   onClick={() => handleDeletePost(post._id)}
                   className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
@@ -483,7 +483,7 @@ const Profile = ({ onNavigate }) => {
                   </svg>
                 </button>
 
-                {/* Edit Button */}
+                
                 <button
                   onClick={() => handleEditPost(post._id)}
                   className="absolute top-3 right-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
@@ -499,7 +499,7 @@ const Profile = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* Followers Modal */}
+      
       <FollowersModal
         isOpen={showFollowersModal}
         onClose={() => setShowFollowersModal(false)}

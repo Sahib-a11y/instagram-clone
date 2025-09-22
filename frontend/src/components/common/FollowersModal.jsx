@@ -8,7 +8,7 @@ const FollowersModal = ({ isOpen, onClose, userId, type, onNavigate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Memoize fetchUsers function to avoid ESLint warnings
+  
   const fetchUsers = useCallback(async () => {
     if (!isOpen || !userId) return;
     
@@ -52,7 +52,7 @@ const FollowersModal = ({ isOpen, onClose, userId, type, onNavigate }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-96 overflow-hidden">
-        {/* Modal Header */}
+        
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 capitalize">
             {type} ({users.length})
@@ -67,7 +67,7 @@ const FollowersModal = ({ isOpen, onClose, userId, type, onNavigate }) => {
           </button>
         </div>
 
-        {/* Modal Content */}
+        
         <div className="overflow-y-auto max-h-80">
           {loading ? (
             <div className="flex justify-center items-center py-8">

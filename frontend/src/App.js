@@ -35,13 +35,13 @@ const AppRouter = () => {
         setSelectedConversation(data.conversation);
       }
     } else {
-      // Reset data when navigating without specific data
+      
       setSelectedUserId(null);
       setSelectedConversation(null);
     }
   };
 
-  // Get active tab based on current page
+  
   const getActiveTab = () => {
     switch (currentPage) {
       case 'profile':
@@ -54,7 +54,7 @@ const AppRouter = () => {
     }
   };
 
-  // Render current page
+  
   const renderPage = () => {
     if (!isAuthenticated) {
       switch (currentPage) {

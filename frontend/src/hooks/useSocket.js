@@ -11,12 +11,12 @@ export const useSocket = () => {
   useEffect(() => {
     if (token && user) {
       const initializeSocket = () => {
-        // Close existing connection if any
+        
         if (socketRef.current) {
           socketRef.current.disconnect();
         }
 
-        console.log('🔄 Initializing socket connection...');
+        console.log('Initializing socket connection...');
         
         socketRef.current = io(process.env.REACT_APP_API_URL, {
           auth: {
@@ -31,12 +31,12 @@ export const useSocket = () => {
         });
 
         socketRef.current.on('connect', () => {
-          console.log('✅ Connected to server');
+          console.log('Connected to server');
           reconnectAttemptsRef.current = 0;
         });
 
         socketRef.current.on('disconnect', (reason) => {
-          console.log('❌ Disconnected from server:', reason);
+          console.log('Disconnected from server:', reason);
         });
 
         socketRef.current.on('connect_error', (error) => {
@@ -49,7 +49,7 @@ export const useSocket = () => {
         });
 
         socketRef.current.on('reconnect', (attempt) => {
-          console.log(`🔁 Reconnected after ${attempt} attempts`);
+          console.log(`Reconnected after ${attempt} attempts`);
         });
 
         socketRef.current.on('reconnect_error', (error) => {
@@ -65,7 +65,7 @@ export const useSocket = () => {
 
       return () => {
         if (socketRef.current) {
-          console.log('🔌 Cleaning up socket connection');
+          console.log('Cleaning up socket connection');
           socketRef.current.removeAllListeners();
           socketRef.current.disconnect();
         }
@@ -76,7 +76,7 @@ export const useSocket = () => {
   const joinConversation = useCallback((conversationId) => {
     if (socketRef.current?.connected && conversationId) {
       socketRef.current.emit('join_conversation', conversationId);
-      console.log(`📨 Joining conversation: ${conversationId}`);
+      console.log(`Joining conversation: ${conversationId}`);
     } else {
       console.warn('Socket not connected, cannot join conversation');
     }
@@ -85,13 +85,13 @@ export const useSocket = () => {
   const leaveConversation = useCallback((conversationId) => {
     if (socketRef.current?.connected && conversationId) {
       socketRef.current.emit('leave_conversation', conversationId);
-      console.log(`📤 Leaving conversation: ${conversationId}`);
+      console.log(`Leaving conversation: ${conversationId}`);
     }
   }, []);
 
   const sendMessage = useCallback((event, data) => {
     if (socketRef.current?.connected) {
-      console.log(`📤 Sending ${event}:`, data);
+      console.log(`Sending ${event}:`, data);
       socketRef.current.emit(event, data);
       return true;
     } else {
@@ -100,7 +100,7 @@ export const useSocket = () => {
     }
   }, []);
 
-  // Event subscription methods with connection checks
+  
   const onNewMessage = useCallback((callback) => {
     if (socketRef.current) {
       socketRef.current.on('new_message', callback);
@@ -166,6 +166,24 @@ export const useSocket = () => {
     }
   }, []);
 
+  const offNewMessage = useCallback((callback) => {
+  if (socketRef.current) {
+    socketRef.current.off('new_message', callback);
+  }
+}, []);
+
+const offTyping = useCallback((callback) => {
+  if (socketRef.current) {
+    socketRef.current.off('user_typing', callback);
+  }
+}, []);
+
+const offStopTyping = useCallback((callback) => {
+  if (socketRef.current) {
+    socketRef.current.off('user_stop_typing', callback);
+  }
+}, []);
+
   return {
     joinConversation,
     leaveConversation,
@@ -176,6 +194,9 @@ export const useSocket = () => {
     onMessagesRead,
     onUserStatusChange,
     isConnected,
-    reconnect
+    reconnect,
+    offNewMessage,
+    offTyping,
+    offStopTyping
   };
 };

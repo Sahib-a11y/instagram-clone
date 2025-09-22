@@ -29,10 +29,10 @@ const Layout = ({ children, onNavigate, activeTab }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100 font-sans">
-      {/* Fixed Sidebar */}
+
       <aside className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-2xl border-r border-gray-700 z-50 flex flex-col justify-between">
         <div className="flex flex-col items-center p-6">
-          {/* Logo */}
+
           <h1
             className="text-3xl font-extrabold text-indigo-500 cursor-pointer hover:text-indigo-400 transition-colors"
             onClick={() => handleNavigation('home')}
@@ -40,7 +40,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
             Connect
           </h1>
 
-          {/* Desktop Navigation */}
+          
           <nav className="mt-10 w-full">
             <button
               onClick={() => handleNavigation('home')}
@@ -66,7 +66,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
           </nav>
         </div>
 
-        {/* User Menu at bottom of sidebar */}
+        
         <div className="relative p-6 border-t border-gray-700">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
@@ -81,7 +81,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
             <FaChevronDown className={`w-4 h-4 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Dropdown Menu */}
+
           {showDropdown && (
             <div className="absolute bottom-24 left-0 right-0 mx-4 w-auto bg-gray-800 rounded-lg shadow-2xl border border-gray-700 z-50 animate-fade-in-down">
               <div className="py-2">
@@ -116,12 +116,11 @@ const Layout = ({ children, onNavigate, activeTab }) => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-grow ml-64 p-8">
         {children}
       </main>
 
-      {/* Mobile Menu (Overlay) */}
+      
       <div className={`md:hidden fixed inset-y-0 left-0 bg-gray-800 z-50 w-64 shadow-2xl transform transition-transform duration-300 ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full justify-between p-6">
           <div>
@@ -170,7 +169,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      
       {showMobileMenu && (
         <div
           className="fixed inset-0 bg-black opacity-50 z-40"

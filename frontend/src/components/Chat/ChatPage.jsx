@@ -13,7 +13,7 @@ const ChatPage = ({ onNavigate, initialConversation }) => {
     if (initialConversation) {
       setSelectedConversation(initialConversation);
       setShowChatList(false);
-      // Add the initial conversation to the list
+      
       setNewConversation(initialConversation);
     }
   }, [initialConversation]);
@@ -66,7 +66,7 @@ const ChatPage = ({ onNavigate, initialConversation }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
-        {/* Chat List */}
+        
         <div className={`lg:col-span-1 ${showChatList ? 'block' : 'hidden lg:block'}`}>
           <ChatList 
             onSelectConversation={handleSelectConversation} 
@@ -76,7 +76,6 @@ const ChatPage = ({ onNavigate, initialConversation }) => {
           />
         </div>
 
-        {/* Chat Window */}
         <div className={`lg:col-span-2 ${!showChatList || selectedConversation ? 'block' : 'hidden lg:block'}`}>
           <ChatWindow 
             conversation={selectedConversation} 

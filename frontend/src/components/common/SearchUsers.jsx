@@ -123,7 +123,7 @@ const SearchUsers = ({ onNavigate }) => {
 
   return (
     <div className="bg-gray-800 rounded-3xl shadow-2xl mb-8 animate-fade-in-up">
-      {/* Search Header */}
+      
       <div className="p-6 border-b border-gray-700">
         <h2 className="text-xl font-semibold text-gray-100 mb-4">Discover People</h2>
         <div className="relative">
@@ -145,7 +145,7 @@ const SearchUsers = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Search Results */}
+
       {showResults && (
         <div className="border-b border-gray-700 animate-slide-in-down">
           {loading ? (
@@ -170,7 +170,7 @@ const SearchUsers = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Suggestions */}
+
       {!showResults && (
         <div className="animate-fade-in">
           <div className="px-6 py-4 text-sm font-medium text-gray-400 bg-gray-700/50 flex justify-between items-center">

@@ -313,7 +313,7 @@ const Register = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Register Status Overlay */}
+        
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-40 flex flex-col items-center justify-center rounded-3xl shadow-xl transition-opacity duration-700 ease-in-out z-50 ${loading || registerSuccess ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           {loading && !registerSuccess && (
             <div className="flex flex-col items-center">

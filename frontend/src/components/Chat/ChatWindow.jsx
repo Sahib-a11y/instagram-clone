@@ -7,7 +7,7 @@ import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDou
 
 const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const { token, user } = useAuth();
-  const { joinConversation, leaveConversation, sendMessage: sendSocketMessage, onNewMessage, offNewMessage, onTyping, offTyping, onStopTyping, offStopTyping } = useSocket();
+  const { joinConversation, leaveConversation, sendMessage: sendSocketMessage, onNewMessage, onTyping, onStopTyping } = useSocket();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,8 +16,9 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const [typingUser, setTypingUser] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const conversationIdRef = useRef(null);
+  const optimisticMessagesRef = useRef(new Set()); // Track optimistic message IDs
 
-  // Safely get other participant with null check
   const otherParticipant = conversation?.participants?.find(
     p => p._id !== user?._id
   );
@@ -38,7 +39,17 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages || []);
+        // Filter out any messages that match optimistic ones
+        const serverMessages = data.messages || [];
+        
+        // Remove any optimistic messages that have been confirmed by server
+        const filteredMessages = serverMessages.filter(serverMsg => 
+          !Array.from(optimisticMessagesRef.current).some(optimisticId => 
+            optimisticId.includes(serverMsg.content) // Match by content
+          )
+        );
+        
+        setMessages(filteredMessages);
         markMessagesAsRead();
       }
     } catch (error) {
@@ -48,7 +59,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   };
 
   const markMessagesAsRead = async () => {
-    if (!conversation || !messages.length) return;
+    if (!conversation) return;
 
     try {
       await fetch(`${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/read`, {
@@ -62,15 +73,50 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
     }
   };
 
-  // Socket event handlers
   useEffect(() => {
+    // Clear optimistic messages tracking when conversation changes
+    optimisticMessagesRef.current.clear();
+    
+    if (conversationIdRef.current !== conversation?._id) {
+      setMessages([]);
+      conversationIdRef.current = conversation?._id;
+    }
+
     if (conversation) {
       fetchMessages();
       joinConversation(conversation._id);
       
       const handleNewMessage = (data) => {
         if (data.message.conversation === conversation._id) {
-          setMessages(prev => [...prev, data.message]);
+          setMessages(prev => {
+            // Check if this message matches any optimistic message
+            const isOptimisticMatch = Array.from(optimisticMessagesRef.current).some(optimisticId => 
+              optimisticId.includes(data.message.content)
+            );
+
+            // Remove from optimistic tracking if it's a match
+            if (isOptimisticMatch) {
+              optimisticMessagesRef.current.delete(data.tempId);
+            }
+
+            // Check for exact duplicates
+            const exactDuplicate = prev.some(msg => msg._id === data.message._id);
+            
+            if (exactDuplicate) {
+              return prev;
+            }
+
+            // If it's an optimistic message replacement
+            if (data.tempId) {
+              return prev.map(msg =>
+                msg._id === data.tempId ? {...data.message} : msg
+              );
+            }
+
+            // Add new message
+            return [...prev, data.message];
+          });
+          
           markMessagesAsRead();
           if (onConversationUpdate) onConversationUpdate();
         }
@@ -81,12 +127,10 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
           setIsTyping(true);
           setTypingUser(data.user);
           
-          // Clear previous timeout
           if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
           }
           
-          // Set timeout to hide typing indicator after 3 seconds
           typingTimeoutRef.current = setTimeout(() => {
             setIsTyping(false);
             setTypingUser(null);
@@ -99,25 +143,23 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
           setIsTyping(false);
           setTypingUser(null);
           
-          // Clear timeout when typing stops
           if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
           }
         }
       };
 
-      // Subscribe to socket events
-      onNewMessage(handleNewMessage);
-      onTyping(handleTyping);
-      onStopTyping(handleStopTyping);
+      const cleanupNewMessage = onNewMessage(handleNewMessage);
+      const cleanupTyping = onTyping(handleTyping);
+      const cleanupStopTyping = onStopTyping(handleStopTyping);
 
       return () => {
         leaveConversation(conversation._id);
-        offNewMessage(handleNewMessage);
-        offTyping(handleTyping);
-        offStopTyping(handleStopTyping);
         
-        // Clear timeout on unmount
+        if (cleanupNewMessage) cleanupNewMessage();
+        if (cleanupTyping) cleanupTyping();
+        if (cleanupStopTyping) cleanupStopTyping();
+        
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
@@ -150,9 +192,9 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
 
     setSending(true);
     
-    // Optimistic UI update
+    const tempId = `optimistic-${Date.now()}-${newMessage.trim().substring(0, 10)}`;
     const tempMessage = {
-      _id: Date.now().toString(),
+      _id: tempId,
       content: newMessage.trim(),
       sender: { _id: user._id, name: user.name, pic: user.pic },
       createdAt: new Date().toISOString(),
@@ -160,19 +202,22 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
       isOptimistic: true
     };
 
+    // Track this optimistic message
+    optimisticMessagesRef.current.add(tempId);
+
     setMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
     handleStopTyping();
 
     try {
-      // Use socket for real-time messaging
+      // Socket for real time message
       sendSocketMessage('send_message', {
         conversationId: conversation._id,
         content: newMessage.trim(),
-        tempId: tempMessage._id
+        tempId: tempId
       });
 
-      // Also send to API for persistence
+      // API call to save message
       const response = await fetch(`${process.env.REACT_APP_API_URL}/message`, {
         method: 'POST',
         headers: {
@@ -186,13 +231,20 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
       });
 
       if (!response.ok) {
-        console.error('Failed to send message');
-        // Remove optimistic message if failed
-        setMessages(prev => prev.filter(msg => msg._id !== tempMessage._id));
+        throw new Error('Failed to send message');
       }
+
+      // Remove optimistic message after successful API call (socket should handle replacement)
+      setTimeout(() => {
+        setMessages(prev => prev.filter(msg => msg._id !== tempId));
+        optimisticMessagesRef.current.delete(tempId);
+      }, 5000);
+
     } catch (error) {
       console.error('Send message error:', error);
-      setMessages(prev => prev.filter(msg => msg._id !== tempMessage._id));
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg._id !== tempId));
+      optimisticMessagesRef.current.delete(tempId);
     }
     setSending(false);
   };
@@ -223,7 +275,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
     return message && message.readBy && Array.isArray(message.readBy) && message.readBy.length > 0;
   };
 
-  // Handle case when conversation is null or undefined
   if (!conversation) {
     return (
       <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
