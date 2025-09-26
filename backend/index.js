@@ -20,7 +20,7 @@ const server = createServer(app)
 const socketServer = new SocketServer(server);
 
 app.use(cors({
-    origin:["https://connect-app-amber.vercel.app/"]
+    origin:["http://localhost:5000/","https://connect-app-amber.vercel.app/"]
 }))
 
 app.use(
