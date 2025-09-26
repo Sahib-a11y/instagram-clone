@@ -19,7 +19,9 @@ const server = createServer(app)
 
 const socketServer = new SocketServer(server);
 
-app.use(cors())
+app.use(cors({
+    origin:["https://connect-app-amber.vercel.app/"]
+}))
 
 app.use(
     fileUpload({
