@@ -87,9 +87,13 @@ class SocketServer {
                 if (conversation) {
                     socket.join(`conversation_${conversationId}`);
                     // console.log(`User ${userId} joined conversation ${conversationId}`);
+                    socket.join(`user_${userId}`);
+                }else {
+                    console.log(`conversation not found : ${conversationId}`);
+                    
                 }
             } catch (error) {
-                // console.error('Join conversation error:', error);
+                console.error('Join conversation error:', error);
             }
         });
 
@@ -100,15 +104,81 @@ class SocketServer {
         });
 
         
-        socket.on('send_message', async (data) => {    //hndle snd mssg
-            try {
-                await this.handleSendMessage(socket, data);
-            } catch (error) {
-                // console.error('Send message error:', error);
-                socket.emit('message_error', { error: 'Failed to send message', tempId: data.tempId });
-            }
+    socket.on('send_message', async (data) => {
+    try {
+        const { conversationId, content, tempId } = data;
+        const userId = socket.userId;
+
+        console.log(`📤 User ${userId} sending message to conversation ${conversationId}:`, content);
+
+        const conversation = await Conversation.findOne({
+            _id: conversationId,
+            participants: userId
         });
 
+        if (!conversation) {
+            console.error('❌ Conversation not found or access denied');
+            socket.emit('message_error', { error: 'Conversation not found', tempId });
+            return;
+        }
+
+        try {
+            // Create message - DON'T mark as read for anyone yet
+            const message = new Message({
+                conversation: conversationId,
+                sender: userId,
+                content: content.trim(),
+                isRequestMessage: conversation.isMessageRequest && !conversation.requestAccepted,
+                readBy: [] // Start with empty readBy array
+            });
+
+            await message.save();
+            await message.populate('sender', 'name pic');
+
+            
+            conversation.lastMessage = message._id;
+            conversation.lastActivity = new Date();
+            await conversation.save();
+
+            const messageData = {
+                _id: message._id,
+                conversation: message.conversation,
+                sender: message.sender,
+                content: message.content,
+                createdAt: message.createdAt,
+                isRequestMessage: message.isRequestMessage,
+                readBy: [] // Empty for receivers
+            };
+            this.io.to(`conversation_${conversationId}`).emit('new_message', {
+                message: messageData,
+                tempId
+            });
+
+            console.log(`📨 Message broadcasted to conversation ${conversationId}`);
+            const senderMessageData = {
+                ...messageData,
+                readBy: [{
+                    user: userId,
+                    readAt: new Date()
+                }]
+            };
+            socket.emit('new_message', {
+                message: senderMessageData,
+                tempId
+            });
+
+            console.log(`✅ Sent personalized message to sender ${userId}`);
+
+        } catch (error) {
+            console.error('Error saving message:', error);
+            socket.emit('message_error', { error: 'Failed to save message', tempId });
+        }
+
+    } catch (error) {
+        console.error('Send message error:', error);
+        socket.emit('message_error', { error: 'Failed to send message', tempId: data.tempId });
+    }
+});
         socket.on('typing_start', (data) => {   //hndle typing indicator
             this.handleTypingStart(socket, data);
         });
@@ -116,15 +186,55 @@ class SocketServer {
         socket.on('typing_stop', (data) => {
             this.handleTypingStop(socket, data);
         });
+socket.on('mark_messages_read', async (data) => {
+  try {
+    const { conversationId } = data;
+    const userId = socket.userId;
 
+    console.log(`User ${userId} marking messages as read in conversation ${conversationId}`);
+
+    // Update messages in database
+    const result = await Message.updateMany(
+      {
+        conversation: conversationId,
+        sender: { $ne: userId },
+        "readBy.user": { $ne: userId }
+      },
+      {
+        $push: {
+          readBy: {
+            user: userId,
+            readAt: new Date()
+          }
+        }
+      }
+    );
+
+    // console.log(`Updated ${result.modifiedCount} messages as read`);
+
+    // Find the conversation to get all participants
+    const conversation = await Conversation.findById(conversationId).populate('participants');
     
-        socket.on('mark_messages_read', async (data) => {  //hndle read mssg
-            try {
-                await this.handleMarkMessagesRead(socket, data);
-            } catch (error) {
-                // console.error('Mark messages read error:', error);
-            }
-        });
+    if (conversation) {
+      conversation.participants.forEach(participant => {
+        if (participant._id.toString() !== userId) {
+          this.io.to(`user_${participant._id}`).emit('messages_read', {
+            conversationId: conversationId,
+            readBy: userId,
+            readAt: new Date()
+          });
+          console.log(`Notified user ${participant._id} about read status`);
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
+  }
+});
+
+// Add a new handler for individual message read receipts
+
 
         socket.on('disconnect', () => { //hndle disconnect
             this.handleDisconnection(socket);
