@@ -16,12 +16,28 @@ import SocketServer from './socket/socketServer.js';
 const app = express()
 const server = createServer(app)
 
-
 const socketServer = new SocketServer(server);
 
+// ✅ Fixed CORS config
 app.use(cors({
-    origin:["http://localhost:5000/","https://connect-app-amber.vercel.app/"]
-}))
+    origin: [
+        "http://localhost:5000",              // local dev
+        "https://connect-app-amber.vercel.app" // deployed frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true
+}));
+
+// ✅ Handle OPTIONS preflight requests globally
+app.use((req, res, next) => {
+    if (req.method === "OPTIONS") {
+        res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+        res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 app.use(
     fileUpload({
@@ -31,14 +47,13 @@ app.use(
         abortOnLimit: true
     })
 );
-app.options('/:id', cors())
 
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
 async function DBConnect() {
     try {
-        const res = await mongoose.connect(process.env.MONGOURI)
+        await mongoose.connect(process.env.MONGOURI)
         console.log('DB connected Successfully')
     } catch (error) {
         console.log("MongoDB connection error: ", error)
@@ -61,11 +76,9 @@ app.use(storyrouter)
 app.use(uploadrouter)
 app.use(chatrouter)
 
-
 app.set('socketio', socketServer.getIO());  //socket for routes if need
 
 app.use((err, req, res, next) => {
-    // console.error('Server Error:', err)
     res.status(500).json({
         error: 'Internal Server Error',
         message: err.message
