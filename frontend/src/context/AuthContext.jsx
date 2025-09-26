@@ -90,14 +90,14 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-
+  const API_BASE = process.env.REACT_APP_API_URL?.replace(/\/+$/,"")
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
       
       if (token) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_URL}/profile`, {
+          const response = await fetch(`${API_BASE}/profile`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       // console.log('API URL:',`${process.env.REACT_APP_API_URL}/signin`);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/signin`, {
+      const response = await fetch(` ${API_BASE}/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/signup`, {
+      const response = await fetch(`$${API_BASE}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
