@@ -3,11 +3,22 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
-import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 
 const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const { token, user } = useAuth();
-  const { joinConversation, leaveConversation, sendMessage: sendSocketMessage, onNewMessage, onTyping, onStopTyping } = useSocket();
+  const { 
+    joinConversation, 
+    leaveConversation, 
+    sendMessage: sendSocketMessage, 
+    onNewMessage, 
+    onTyping, 
+    onStopTyping,
+    onMessagesRead,
+    onUserStatusChange,
+    isConnected 
+  } = useSocket();
+  
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,11 +28,13 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const conversationIdRef = useRef(null);
-  const optimisticMessagesRef = useRef(new Set()); // Track optimistic message IDs
+  const lastTypingTimeRef = useRef(0);
 
   const otherParticipant = conversation?.participants?.find(
     p => p._id !== user?._id
   );
+
+  useEffect(() => {}, [conversation, isConnected, user, otherParticipant]);
 
   const fetchMessages = async () => {
     if (!conversation) return;
@@ -39,18 +52,8 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter out any messages that match optimistic ones
-        const serverMessages = data.messages || [];
+        setMessages(data.messages || []);
         
-        // Remove any optimistic messages that have been confirmed by server
-        const filteredMessages = serverMessages.filter(serverMsg => 
-          !Array.from(optimisticMessagesRef.current).some(optimisticId => 
-            optimisticId.includes(serverMsg.content) // Match by content
-          )
-        );
-        
-        setMessages(filteredMessages);
-        markMessagesAsRead();
       }
     } catch (error) {
       console.error('Fetch messages error:', error);
@@ -59,112 +62,299 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   };
 
   const markMessagesAsRead = async () => {
-    if (!conversation) return;
+    if (!conversation || !isConnected()) return;
 
-    try {
-      await fetch(`${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/read`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+    try {      
+      sendSocketMessage('mark_messages_read', {
+        conversationId: conversation._id
       });
+
     } catch (error) {
       console.error('Mark read error:', error);
     }
   };
 
-  useEffect(() => {
-    // Clear optimistic messages tracking when conversation changes
-    optimisticMessagesRef.current.clear();
+  
+  const isMessageRead = (message) => {
+    if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
     
-    if (conversationIdRef.current !== conversation?._id) {
-      setMessages([]);
-      conversationIdRef.current = conversation?._id;
+    
+    return message.readBy.some(read => 
+      read.user === otherParticipant?._id
+    );
+  };
+
+  const isMessageDelivered = (message) => {
+    if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
+    
+    
+    if (message.sender._id === user._id) {
+      return message.readBy.some(read => 
+        read.user !== user._id
+      );
     }
+    
+    
+    return message.readBy.some(read => read.user === user._id);
+  };
 
-    if (conversation) {
-      fetchMessages();
-      joinConversation(conversation._id);
+  const getMessageStatus = (message) => {
+    if (message.isOptimistic) return 'sending';
+    if (isMessageRead(message)) return 'read'; 
+    if (isMessageDelivered(message)) return 'delivered'; 
+    return 'sent'; 
+  };
+
+  
+  const handleNewMessage = useRef((data) => {  
+    if (data.message && data.message.conversation === conversation?._id) {
       
-      const handleNewMessage = (data) => {
-        if (data.message.conversation === conversation._id) {
-          setMessages(prev => {
-            // Check if this message matches any optimistic message
-            const isOptimisticMatch = Array.from(optimisticMessagesRef.current).some(optimisticId => 
-              optimisticId.includes(data.message.content)
+      setMessages(prev => {
+        const messageExists = prev.some(msg => msg._id === data.message._id);
+        
+        if (messageExists) {
+          return prev;
+        }
+
+        if (data.tempId) {
+          const optimisticMessageExists = prev.some(msg => msg._id === data.tempId);
+          
+          if (optimisticMessageExists) {
+            const updatedMessages = prev.map(msg => 
+              msg._id === data.tempId ? { ...data.message } : msg
             );
+            return updatedMessages;
+          }
+        }
+        if (data.message.sender._id === user._id) {
+          
+        } else {
+          setTimeout(() => {
+            markMessagesAsRead();
+          }, 100);
+        }
+        
+        const newMessages = [...prev, data.message];
+        return newMessages;
+      });
+      
+      if (onConversationUpdate) onConversationUpdate();
+      
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      
+    } else {
+      console.log('Message not for current conversation or missing data');
+      console.log('Conversation match:', data.message?.conversation === conversation?._id);
+    }
+  });
 
-            // Remove from optimistic tracking if it's a match
-            if (isOptimisticMatch) {
-              optimisticMessagesRef.current.delete(data.tempId);
-            }
+  const handleMessageRead = useRef((data) => {
+    
+    if (data.conversationId === conversation?._id) {
+      setMessages(prev => prev.map(msg => {
+        
+        if (msg.sender._id === user._id && data.readBy === otherParticipant?._id) {
+        
+          const alreadyRead = msg.readBy.some(read => read.user === data.readBy);
+          if (!alreadyRead) {
+            return {
+              ...msg,
+              readBy: [...msg.readBy, { user: data.readBy, readAt: data.readAt || new Date() }]
+            };
+          }
+        }
+        return msg;
+      }));
+    }
+  });
 
-            // Check for exact duplicates
-            const exactDuplicate = prev.some(msg => msg._id === data.message._id);
+  const handleTyping = useRef((data) => {
+    
+    // Prevent rapid typing events
+    const now = Date.now();
+    if (now - lastTypingTimeRef.current < 500) {
+      return;
+    }
+    lastTypingTimeRef.current = now;
+
+    if (data.conversationId === conversation?._id && data.userId !== user?._id) {
+      console.log(data.user?.name);
+      setIsTyping(true);
+      setTypingUser(data.user);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      typingTimeoutRef.current = setTimeout(() => {
+
+        setIsTyping(false);
+        setTypingUser(null);
+      }, 3000);
+    }
+  });
+
+  const handleStopTyping = useRef((data) => {
+    if (data.conversationId === conversation?._id && data.userId !== user?._id) {
+      setIsTyping(false);
+      setTypingUser(null);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+  });
+
+  const handleUserStatusChange = useRef((data) => {
+  });
+
+  useEffect(() => {
+    
+    const updateHandlers = () => {
+      handleNewMessage.current = (data) => {
+        if (data.message && data.message.conversation === conversation?._id) {
+          setMessages(prev => {
+            const messageExists = prev.some(msg => msg._id === data.message._id);
             
-            if (exactDuplicate) {
+            if (messageExists) {
               return prev;
             }
 
-            // If it's an optimistic message replacement
             if (data.tempId) {
-              return prev.map(msg =>
-                msg._id === data.tempId ? {...data.message} : msg
-              );
+              const optimisticMessageExists = prev.some(msg => msg._id === data.tempId);
+              if (optimisticMessageExists) {
+                const updatedMessages = prev.map(msg => 
+                  msg._id === data.tempId ? { ...data.message } : msg
+                );
+                return updatedMessages;
+              }
             }
 
-            // Add new message
-            return [...prev, data.message];
+            const newMessages = [...prev, data.message];            
+            if (data.message.sender._id !== user._id) {
+              setTimeout(() => markMessagesAsRead(), 100);
+            }
+            
+            return newMessages;
           });
           
-          markMessagesAsRead();
           if (onConversationUpdate) onConversationUpdate();
+          setTimeout(() => scrollToBottom(), 100);
         }
       };
 
-      const handleTyping = (data) => {
-        if (data.conversationId === conversation._id && data.userId !== user._id) {
+      handleMessageRead.current = (data) => {
+        
+        if (data.conversationId === conversation?._id) {
+          setMessages(prev => prev.map(msg => {
+            if (msg.sender._id === user._id && data.readBy === otherParticipant?._id) {
+              const alreadyRead = msg.readBy.some(read => read.user === data.readBy);
+              if (!alreadyRead) {
+                console.log(`✅ UPDATING message ${msg._id} as READ by ${data.readBy}`);
+                return {
+                  ...msg,
+                  readBy: [...msg.readBy, { user: data.readBy, readAt: data.readAt || new Date() }]
+                };
+              }
+            }
+            return msg;
+          }));
+        }
+      };
+
+      handleTyping.current = (data) => {
+        
+        const now = Date.now();
+        if (now - lastTypingTimeRef.current < 500) return;
+        lastTypingTimeRef.current = now;
+
+        if (data.conversationId === conversation?._id && data.userId !== user?._id) {
           setIsTyping(true);
           setTypingUser(data.user);
-          
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-          }
-          
-          typingTimeoutRef.current = setTimeout(() => {
-            setIsTyping(false);
-            setTypingUser(null);
-          }, 3000);
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 5000);
         }
       };
 
-      const handleStopTyping = (data) => {
-        if (data.conversationId === conversation._id && data.userId !== user._id) {
+      handleStopTyping.current = (data) => {
+        if (data.conversationId === conversation?._id && data.userId !== user?._id) {
           setIsTyping(false);
           setTypingUser(null);
-          
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-          }
+          clearTimeout(typingTimeoutRef.current);
         }
       };
 
-      const cleanupNewMessage = onNewMessage(handleNewMessage);
-      const cleanupTyping = onTyping(handleTyping);
-      const cleanupStopTyping = onStopTyping(handleStopTyping);
+      handleUserStatusChange.current = (data) => {
+      };
+    };
+
+    updateHandlers();
+  }, [conversation, user, otherParticipant]);
+
+  useEffect(() => {
+    if (conversation) {
+      if (conversationIdRef.current !== conversation._id) {
+        setMessages([]);
+        conversationIdRef.current = conversation._id;
+      }
+      fetchMessages();
+      joinConversation(conversation._id);
+
+      const cleanupNewMessage = onNewMessage((data) => {
+        handleNewMessage.current(data);
+      });
+      const cleanupTyping = onTyping((data) => {
+        handleTyping.current(data);
+      });
+      const cleanupStopTyping = onStopTyping((data) => {
+        handleStopTyping.current(data);
+      });
+      const cleanupMessagesRead = onMessagesRead((data) => {
+        handleMessageRead.current(data);
+      });
+      const cleanupUserStatusChange = onUserStatusChange((data) => {
+        handleUserStatusChange.current(data);
+      });
 
       return () => {
         leaveConversation(conversation._id);
-        
-        if (cleanupNewMessage) cleanupNewMessage();
-        if (cleanupTyping) cleanupTyping();
-        if (cleanupStopTyping) cleanupStopTyping();
+        cleanupNewMessage();
+        cleanupTyping();
+        cleanupStopTyping();
+        cleanupMessagesRead();
+        cleanupUserStatusChange();
         
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
       };
     }
+  }, [conversation]);
+
+  useEffect(() => {
+    if (conversation && messages.length > 0) {
+      setTimeout(() => {
+        markMessagesAsRead();
+      }, 500);
+    }
+  }, [conversation]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (conversation && document.visibilityState === 'visible') {
+        markMessagesAsRead();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleFocus);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleFocus);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [conversation]);
 
   useEffect(() => {
@@ -175,76 +365,63 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleTyping = () => {
-    if (conversation) {
-      sendSocketMessage('typing_start', { conversationId: conversation._id });
-    }
-  };
-
-  const handleStopTyping = () => {
-    if (conversation) {
-      sendSocketMessage('typing_stop', { conversationId: conversation._id });
-    }
-  };
-
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversation) return;
 
     setSending(true);
     
-    const tempId = `optimistic-${Date.now()}-${newMessage.trim().substring(0, 10)}`;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const tempMessage = {
       _id: tempId,
       content: newMessage.trim(),
       sender: { _id: user._id, name: user.name, pic: user.pic },
       createdAt: new Date().toISOString(),
-      readBy: [],
+      readBy: [{ user: user._id, readAt: new Date() }], // Mark as read by sender only
       isOptimistic: true
     };
-
-    // Track this optimistic message
-    optimisticMessagesRef.current.add(tempId);
-
-    setMessages(prev => [...prev, tempMessage]);
+    
+    setMessages(prev => {
+      const newMessages = [...prev, tempMessage];
+      return newMessages;
+    });
     setNewMessage('');
-    handleStopTyping();
 
     try {
-      // Socket for real time message
-      sendSocketMessage('send_message', {
+      console.log('🔌 Sending message via socket:', {
         conversationId: conversation._id,
         content: newMessage.trim(),
         tempId: tempId
       });
 
-      // API call to save message
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          conversationId: conversation._id,
-          content: newMessage.trim()
-        })
+      const success = sendSocketMessage('send_message', {
+        conversationId: conversation._id,
+        content: newMessage.trim(),
+        tempId: tempId
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+      if (!success) {
+        throw new Error('Socket not connected');
       }
+      sendSocketMessage('typing_stop', { conversationId: conversation._id });
 
-      // Remove optimistic message after successful API call (socket should handle replacement)
       setTimeout(() => {
-        setMessages(prev => prev.filter(msg => msg._id !== tempId));
-        optimisticMessagesRef.current.delete(tempId);
+        setMessages(prev => {
+          const messageStillOptimistic = prev.some(msg => msg._id === tempId && msg.isOptimistic);
+          if (messageStillOptimistic) {
+            const filteredMessages = prev.filter(msg => msg._id !== tempId);
+            return filteredMessages;
+          }
+          return prev;
+        });
       }, 5000);
 
     } catch (error) {
       console.error('Send message error:', error);
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => msg._id !== tempId));
-      optimisticMessagesRef.current.delete(tempId);
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => msg._id !== tempId);
+        console.log('Messages after error removal:', filteredMessages.length);
+        return filteredMessages;
+      });
     }
     setSending(false);
   };
@@ -252,27 +429,45 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleStopTyping();
       sendMessage();
     }
   };
 
   const handleInputChange = (e) => {
     setNewMessage(e.target.value);
-    handleTyping();
+    const now = Date.now();
+    if (now - lastTypingTimeRef.current > 1000) {
+      sendSocketMessage('typing_start', { 
+        conversationId: conversation._id 
+      });
+      lastTypingTimeRef.current = now;
+    }
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      sendSocketMessage('typing_stop', { conversationId: conversation._id });
+    }, 2000);
   };
 
   const handleInputBlur = () => {
-    handleStopTyping();
+    sendSocketMessage('typing_stop', { conversationId: conversation._id });
   };
 
-  const isMessageRead = (message) => {
-    if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
-    return message.readBy.some(read => read.user === otherParticipant?._id);
-  };
 
-  const isMessageSeen = (message) => {
-    return message && message.readBy && Array.isArray(message.readBy) && message.readBy.length > 0;
+  useEffect(() => {
+    if (messages.length > 0) {
+      messages.forEach((msg, index) => {
+        if (msg.sender._id === user._id) {
+          console.log(`My message ${index + 1}:`, {
+            content: msg.content,
+            status: getMessageStatus(msg),
+            readBy: msg.readBy.map(r => r.user)
+          });
+        }
+      });
+    }
+  }, [messages]);
+  const handleManualRefresh = () => {
+    fetchMessages();
   };
 
   if (!conversation) {
@@ -302,6 +497,33 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
+
+
+       //Connection Status Indicator 
+      <div className={`flex items-center justify-between px-4 py-2 text-xs font-medium ${
+        isConnected() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}>
+        <div className="flex items-center">
+          {isConnected() ? (
+            <>
+              <FaWifi className="w-3 h-3 mr-1" />
+              <span>Connected to chat</span>
+            </>
+          ) : (
+            <>
+              <FaExclamationTriangle className="w-3 h-3 mr-1" />
+              <span>Disconnected - reconnecting...</span>
+            </>
+          )}
+        </div>
+        <button 
+          onClick={handleManualRefresh}
+          className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+        >
+          Refresh
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center p-4 border-b border-gray-200 bg-white rounded-t-lg">
         <button
@@ -335,7 +557,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
         </button>
       </div>
 
-      {/* Messages */}
+      // Messages 
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {loading ? (
           <div className="flex justify-center items-center h-32">
@@ -362,6 +584,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
                 >
                   <p className={`text-sm ${message.sender._id === user._id ? 'text-white' : 'text-gray-900'}`}>
                     {message.content}
+                    {message.isOptimistic && ' (Sending...)'}
                   </p>
                   <div className="flex items-center justify-end mt-1 space-x-2">
                     <span
@@ -373,12 +596,13 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
                     </span>
                     {message.sender._id === user._id && (
                       <span className="text-xs">
-                        {isMessageSeen(message) ? (
-                          <FaCheckDouble className="text-blue-200" title="Seen" />
-                        ) : isMessageRead(message) ? (
+                        {getMessageStatus(message) === 'sending' && <LoadingSpinner size="xs" />}
+                        {getMessageStatus(message) === 'sent' && <FaCheck className="text-gray-400" title="Sent" />}
+                        {getMessageStatus(message) === 'delivered' && (
                           <FaCheckDouble className="text-gray-400" title="Delivered" />
-                        ) : (
-                          <FaCheck className="text-gray-400" title="Sent" />
+                        )}
+                        {getMessageStatus(message) === 'read' && (
+                          <FaCheckDouble className="text-blue-500" title="Read" />
                         )}
                       </span>
                     )}
@@ -405,7 +629,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
         )}
       </div>
 
-      {/* Message Input */}
+      //Message Input 
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
         <div className="flex space-x-3">
           <input
@@ -419,10 +643,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
             disabled={sending}
           />
           <button
-            onClick={() => {
-              handleStopTyping();
-              sendMessage();
-            }}
+            onClick={sendMessage}
             disabled={!newMessage.trim() || sending}
             className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
