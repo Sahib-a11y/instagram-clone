@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TimeAgo from '../components/common/TimeAgo';
-import SearchUsers from '../components/common/SearchUsers';
 import {
   FaImage,
   FaTimes,
@@ -14,7 +13,6 @@ import {
   FaEllipsisH,
   FaSyncAlt,
   FaFeather,
-  FaBars,
 } from 'react-icons/fa';
 
 const IconButton = ({ children, onClick, className = '', disabled, tooltip = '' }) => (
@@ -63,7 +61,6 @@ const CreatePost = ({ onPostCreated }) => {
   };
   
   const handleSubmit = async () => {
-    
     if (!formData.title.trim() || !formData.body.trim()) {
       alert('Please fill in title and description');
       return;
@@ -80,8 +77,6 @@ const CreatePost = ({ onPostCreated }) => {
     uploadFormData.append('body', formData.body.trim());
     uploadFormData.append('image', selectedFile);
 
-    console.log("FormData entries:", [...uploadFormData.entries()]);
-
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/createPost`, {
         method: 'POST',
@@ -90,11 +85,8 @@ const CreatePost = ({ onPostCreated }) => {
         },
         body: uploadFormData,
       });
-      // console.log('Response status:', response.status);
-      // console.log('Response headers:', Object.fromEntries(response.headers.entries())) 
 
       const data = await response.json();
-      // console.log("response data:", data)
 
       if (response.ok) {
         setFormData({ title: '', body: '' });
@@ -106,7 +98,6 @@ const CreatePost = ({ onPostCreated }) => {
         alert(data.error || data.message || 'Failed to create post');
       }
     } catch (error) {
-      // console.error('Create post error:', error);
       alert('Failed to create post: ' + error.message);
     }
     setLoading(false);
@@ -118,31 +109,31 @@ const CreatePost = ({ onPostCreated }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-3xl shadow-2xl p-8 mb-8 animate-fade-in-up">
-      <div className="flex items-start space-x-6">
+    <div className="bg-gray-800 rounded-3xl shadow-2xl p-6 mb-6 animate-fade-in-up">
+      <div className="flex items-start space-x-4">
         {user?.pic && (
           <img
             src={user.pic}
             alt="User profile"
-            className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500 shadow-md transform hover:scale-105 transition-transform duration-300"
+            className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500 shadow-md"
           />
         )}
         <div className="flex-1">
           {!isExpanded ? (
             <button
               onClick={() => setIsExpanded(true)}
-              className="w-full text-left px-6 py-5 border border-gray-700 rounded-full bg-gray-700 text-gray-400 hover:bg-gray-700/75 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              className="w-full text-left px-4 py-3 border border-gray-700 rounded-full bg-gray-700 text-gray-400 hover:bg-gray-700/75 transition-all duration-300"
             >
               <span className="font-light">Share something...</span>
             </button>
           ) : (
-            <div className="space-y-6 animate-fade-in-down">
+            <div className="space-y-4 animate-fade-in-down">
               <input
                 type="text"
                 placeholder="Post title..."
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-5 py-4 border border-gray-700 rounded-xl bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                className="w-full px-4 py-3 border border-gray-700 rounded-xl bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 maxLength={100}
               />
 
@@ -150,45 +141,43 @@ const CreatePost = ({ onPostCreated }) => {
                 placeholder="What's on your mind?"
                 value={formData.body}
                 onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                rows={4}
-                className="w-full px-5 py-4 border border-gray-700 rounded-xl bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-colors"
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-700 rounded-xl bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 maxLength={500}
               />
 
               {previewImage && (
-                <div className="relative inline-block w-64 h-64 animate-fade-in-up">
+                <div className="relative inline-block w-48 h-48">
                   <img
                     src={previewImage}
                     alt="Preview"
-                    className="w-full h-full object-cover rounded-xl border-4 border-gray-700 shadow-lg"
+                    className="w-full h-full object-cover rounded-xl border-2 border-gray-700"
                   />
                   <button
                     onClick={removeImage}
-                    className="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-red-700 transition-all duration-300 shadow-xl transform hover:scale-110"
+                    className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700"
                   >
-                    <FaTimes className="w-5 h-5" />
+                    <FaTimes className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-6 border-t border-gray-700">
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2 cursor-pointer text-indigo-400 hover:text-indigo-300 transition-colors">
-                    <FaImage className="w-6 h-6" />
-                    <span className="text-sm font-light hidden sm:inline">
-                      {selectedFile ? 'Change Photo' : 'Add Photo'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                      disabled={loading}
-                    />
-                  </label>
-                </div>
+              <div className="flex justify-between items-center pt-4 border-t border-gray-700">
+                <label className="flex items-center space-x-2 cursor-pointer text-indigo-400 hover:text-indigo-300">
+                  <FaImage className="w-5 h-5" />
+                  <span className="text-sm">
+                    {selectedFile ? 'Change Photo' : 'Add Photo'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    disabled={loading}
+                  />
+                </label>
 
-                <div className="flex space-x-3">
+                <div className="flex space-x-2">
                   <button
                     onClick={() => {
                       setIsExpanded(false);
@@ -196,23 +185,16 @@ const CreatePost = ({ onPostCreated }) => {
                       setSelectedFile(null);
                       setPreviewImage(null);
                     }}
-                    className="px-8 py-3 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-all duration-300 font-medium transform hover:scale-105"
+                    className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={loading || !formData.title.trim() || !formData.body.trim() || !selectedFile}
-                    className="px-10 py-3 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center space-x-2 font-semibold shadow-lg hover:shadow-2xl transform hover:scale-105"
+                    className="px-6 py-2 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 transition-all flex items-center space-x-2"
                   >
-                    {loading ? (
-                      <>
-                        <LoadingSpinner size="sm" />
-                        <span>Creating...</span>
-                      </>
-                    ) : (
-                      <span>Post</span>
-                    )}
+                    {loading ? <LoadingSpinner size="sm" /> : <span>Post</span>}
                   </button>
                 </div>
               </div>
@@ -269,7 +251,6 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         alert(data.error || 'Failed to update like status');
       }
     } catch (error) {
-      // console.error('Like error:', error);
       alert('Network error occurred');
     }
   };
@@ -296,12 +277,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         setComments(data.result.Comment || []);
         setNewComment('');
       } else {
-        const errorData = await response.json();
-        // console.error('Comment error:', errorData);
         alert('Failed to add comment');
       }
     } catch (error) {
-      // console.error('Comment error:', error);
       alert('Failed to add comment');
     }
     setCommentLoading(false);
@@ -315,19 +293,19 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-3xl shadow-2xl mb-8 transition-transform duration-300 hover:scale-[1.01] animate-fade-in-up">
-      <div className="p-6 border-b border-gray-700">
+    <div className="bg-gray-800 rounded-2xl shadow-xl mb-6">
+      <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <img
               src={post.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
               alt="Profile"
-              className="w-14 h-14 rounded-full object-cover cursor-pointer border-2 border-indigo-500 hover:border-indigo-400 transition-colors transform hover:scale-105"
+              className="w-10 h-10 rounded-full object-cover cursor-pointer border-2 border-indigo-500"
               onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
             />
             <div>
               <h4
-                className="font-semibold text-gray-200 cursor-pointer hover:text-indigo-400 transition-colors text-lg"
+                className="font-semibold text-gray-200 cursor-pointer hover:text-indigo-400"
                 onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
               >
                 {post.postedBy?.name || 'Unknown User'}
@@ -337,65 +315,60 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
               </p>
             </div>
           </div>
-          <IconButton className="text-gray-400 hover:text-white hover:bg-gray-700" tooltip="More options">
-            <FaEllipsisH className="w-5 h-5" />
+          <IconButton className="text-gray-400 hover:text-white hover:bg-gray-700">
+            <FaEllipsisH className="w-4 h-4" />
           </IconButton>
         </div>
       </div>
 
-      <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-100 mb-2">{post.title}</h3>
-        <p className="text-gray-400 mb-4 leading-relaxed">{post.body}</p>
+      <div className="p-4">
+        <h3 className="text-lg font-bold text-gray-100 mb-2">{post.title}</h3>
+        <p className="text-gray-400 mb-3">{post.body}</p>
         {post.photo && (
-          <div className="rounded-xl overflow-hidden bg-gray-900 shadow-md">
+          <div className="rounded-lg overflow-hidden bg-gray-900">
             <img
               src={post.photo}
               alt="Post content"
-              className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
+              className="w-full h-auto object-cover"
             />
           </div>
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-gray-700">
-        <div className="flex items-center justify-between text-gray-500 font-light">
+      <div className="px-4 py-3 border-t border-gray-700">
+        <div className="flex items-center justify-between text-gray-500">
           <button
             onClick={handleLike}
-            className={`flex items-center space-x-2 transition-colors duration-300 transform hover:scale-105 ${
-              liked ? 'text-red-500' : 'hover:text-red-400'
-            }`}
+            className={`flex items-center space-x-2 ${liked ? 'text-red-500' : 'hover:text-red-400'}`}
           >
-            {liked ? <FaHeart className="w-6 h-6 transform animate-bounce-in" /> : <FaRegHeart className="w-6 h-6" />}
-            <span className="text-lg">{likeCount}</span>
-            <span className="hidden sm:inline">Likes</span>
+            {liked ? <FaHeart className="w-5 h-5" /> : <FaRegHeart className="w-5 h-5" />}
+            <span>{likeCount}</span>
           </button>
 
           <button
             onClick={() => setShowComments(!showComments)}
-            className="flex items-center space-x-2 hover:text-indigo-400 transition-colors duration-300 transform hover:scale-105"
+            className="flex items-center space-x-2 hover:text-indigo-400"
           >
-            <FaComment className="w-6 h-6" />
-            <span className="text-lg">{comments.length}</span>
-            <span className="hidden sm:inline">Comments</span>
+            <FaComment className="w-5 h-5" />
+            <span>{comments.length}</span>
           </button>
 
-          <button className="flex items-center space-x-2 hover:text-emerald-400 transition-colors duration-300 transform hover:scale-105">
-            <FaShareAlt className="w-6 h-6" />
-            <span className="hidden sm:inline">Share</span>
+          <button className="flex items-center space-x-2 hover:text-emerald-400">
+            <FaShareAlt className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {showComments && (
-        <div className="border-t border-gray-700 bg-gray-900/50 rounded-b-3xl animate-fade-in-down">
-          <div className="p-6 border-b border-gray-800 bg-gray-800">
-            <div className="flex space-x-4 items-start">
+        <div className="border-t border-gray-700 bg-gray-900/50">
+          <div className="p-4 border-b border-gray-800 bg-gray-800">
+            <div className="flex space-x-3 items-start">
               <img
                 src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
                 alt="Your profile"
-                className="w-10 h-10 rounded-full object-cover border border-gray-700 transform hover:scale-105 transition-transform duration-300"
+                className="w-8 h-8 rounded-full object-cover border border-gray-700"
               />
-              <div className="flex-1 flex space-x-3">
+              <div className="flex-1 flex space-x-2">
                 <input
                   type="text"
                   placeholder="Write a comment..."
@@ -403,47 +376,43 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={handleKeyPress}
                   disabled={commentLoading}
-                  className="flex-1 px-5 py-3 border border-gray-700 rounded-full bg-gray-900 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                  className="flex-1 px-3 py-2 border border-gray-700 rounded-full bg-gray-900 text-white placeholder-gray-500 text-sm"
                   maxLength={200}
                 />
                 <button
                   onClick={handleComment}
                   disabled={!newComment.trim() || commentLoading}
-                  className="px-6 py-3 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center font-semibold transform hover:scale-105"
+                  className="px-3 py-2 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 text-sm"
                 >
-                  {commentLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    <FaPaperPlane className="w-4 h-4" />
-                  )}
+                  {commentLoading ? <LoadingSpinner size="sm" /> : <FaPaperPlane className="w-3 h-3" />}
                 </button>
               </div>
             </div>
           </div>
-          <div className="max-h-64 overflow-y-auto custom-scrollbar">
+          <div className="max-h-48 overflow-y-auto">
             {comments.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 animate-fade-in">
+              <div className="p-4 text-center text-gray-500 text-sm">
                 <p>No comments yet. Be the first to comment!</p>
               </div>
             ) : (
               comments.map((comment, index) => (
-                <div key={index} className="p-6 border-b border-gray-800 last:border-b-0 bg-gray-800 hover:bg-gray-700 transition-colors duration-200 animate-slide-in-up">
-                  <div className="flex space-x-3">
+                <div key={index} className="p-4 border-b border-gray-800 last:border-b-0">
+                  <div className="flex space-x-2">
                     <img
                       src={comment.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
                       alt="Commenter"
-                      className="w-10 h-10 rounded-full object-cover border border-gray-700 transform hover:scale-105 transition-transform duration-300"
+                      className="w-6 h-6 rounded-full object-cover border border-gray-700"
                     />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium text-base text-gray-300">
+                        <span className="font-medium text-sm text-gray-300">
                           {comment.postedBy?.name || 'Anonymous'}
                         </span>
                         <span className="text-xs text-gray-500">
                           <TimeAgo date={comment.createdAt || Date.now()} />
                         </span>
                       </div>
-                      <p className="text-sm text-gray-400 mt-1 break-words">
+                      <p className="text-sm text-gray-400 mt-1">
                         {comment.text}
                       </p>
                     </div>
@@ -458,12 +427,11 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   );
 };
 
-const Home = ({ onNavigate, onToggleSidebar }) => {
+const Home = ({ onNavigate }) => {
   const { token } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
 
   const fetchPosts = async (showRefreshLoader = false) => {
     if (showRefreshLoader) setRefreshing(true);
@@ -479,12 +447,9 @@ const Home = ({ onNavigate, onToggleSidebar }) => {
       if (response.ok) {
         const data = await response.json();
         setPosts(data.posts || []);
-      } else {
-        const errorData = await response.json();
-        // console.error('Fetch posts error:', errorData);
       }
     } catch (error) {
-      // console.error('Error fetching posts:', error);
+      console.error('Error fetching posts:', error);
     }
     setLoading(false);
     if (showRefreshLoader) setRefreshing(false);
@@ -498,10 +463,6 @@ const Home = ({ onNavigate, onToggleSidebar }) => {
     fetchPosts(true);
   };
 
-  const toggleMobileSidebar = () => {
-    setShowSidebar(!showSidebar);
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900">
@@ -511,96 +472,41 @@ const Home = ({ onNavigate, onToggleSidebar }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans relative">
-      {/* Mobile Sidebar Toggle Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={toggleMobileSidebar}
-          className="p-3 bg-indigo-600 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300"
-        >
-          <FaBars className="w-6 h-6" />
-        </button>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Main Content - Full width on mobile, 2/3 on desktop */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-8 animate-fade-in-down">
-              <h1 className="text-4xl font-extrabold text-gray-100 tracking-tight ml-12 lg:ml-0">Home Feed</h1>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center space-x-2 px-8 py-3 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-semibold shadow-md hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                {refreshing ? (
-                  <>
-                    <LoadingSpinner size="sm" color="white" />
-                    <span>Refreshing</span>
-                  </>
-                ) : (
-                  <>
-                    <FaSyncAlt className="w-4 h-4" />
-                    <span>Refresh</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <CreatePost onPostCreated={() => fetchPosts()} />
-
-            <div className="space-y-8">
-              {posts.length === 0 ? (
-                <div className="text-center py-20 bg-gray-800 rounded-2xl shadow-xl animate-fade-in">
-                  <FaFeather className="mx-auto w-20 h-20 text-gray-500 mb-6" />
-                  <h3 className="text-2xl font-semibold text-gray-200 mb-2">Nothing to see here yet</h3>
-                  <p className="text-gray-400 mb-6">Be the first to share something with the community!</p>
-                  <button
-                    onClick={() => document.querySelector('textarea[placeholder="What\'s on your mind?"]')?.focus()}
-                    className="text-indigo-400 hover:text-indigo-300 font-bold text-lg transition-colors"
-                  >
-                    Create the first post &rarr;
-                  </button>
-                </div>
-              ) : (
-                posts.map((post) => (
-                  <PostCard
-                    key={post._id}
-                    post={post}
-                    onNavigate={onNavigate}
-                    onPostUpdate={fetchPosts}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Sidebar - Hidden on mobile, shown on desktop */}
-          <div className={`lg:col-span-1 ${showSidebar ? 'block fixed inset-0 z-40 bg-gray-900 p-6 overflow-y-auto' : 'hidden lg:block'}`}>
-            {/* Close button for mobile sidebar */}
-            {showSidebar && (
-              <div className="flex justify-between items-center mb-6 lg:hidden">
-                <h2 className="text-2xl font-bold text-gray-100">Menu</h2>
-                <button
-                  onClick={toggleMobileSidebar}
-                  className="p-2 text-gray-400 hover:text-white transition-colors"
-                >
-                  <FaTimes className="w-6 h-6" />
-                </button>
-              </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-100">Home Feed</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 text-sm"
+          >
+            {refreshing ? (
+              <LoadingSpinner size="sm" color="white" />
+            ) : (
+              <FaSyncAlt className="w-4 h-4" />
             )}
-            
-            <div className={`${showSidebar ? 'block' : 'sticky top-10'} space-y-8`}>
-              <SearchUsers onNavigate={onNavigate} />
-            </div>
-          </div>
+          </button>
+        </div>
 
-          {/* Overlay for mobile sidebar */}
-          {showSidebar && (
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-              onClick={toggleMobileSidebar}
-            />
+        <CreatePost onPostCreated={() => fetchPosts()} />
+
+        <div className="space-y-4">
+          {posts.length === 0 ? (
+            <div className="text-center py-12 bg-gray-800 rounded-2xl">
+              <FaFeather className="mx-auto w-12 h-12 text-gray-500 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-200 mb-2">Nothing to see here yet</h3>
+              <p className="text-gray-400 text-sm">Be the first to share something!</p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                onNavigate={onNavigate}
+                onPostUpdate={fetchPosts}
+              />
+            ))
           )}
         </div>
       </div>
