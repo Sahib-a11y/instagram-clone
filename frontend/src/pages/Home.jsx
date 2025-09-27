@@ -14,8 +14,8 @@ import {
   FaEllipsisH,
   FaSyncAlt,
   FaFeather,
+  FaBars,
 } from 'react-icons/fa';
-
 
 const IconButton = ({ children, onClick, className = '', disabled, tooltip = '' }) => (
   <button
@@ -458,11 +458,12 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   );
 };
 
-const Home = ({ onNavigate }) => {
+const Home = ({ onNavigate, onToggleSidebar }) => {
   const { token } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   const fetchPosts = async (showRefreshLoader = false) => {
     if (showRefreshLoader) setRefreshing(true);
@@ -497,6 +498,10 @@ const Home = ({ onNavigate }) => {
     fetchPosts(true);
   };
 
+  const toggleMobileSidebar = () => {
+    setShowSidebar(!showSidebar);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900">
@@ -506,12 +511,23 @@ const Home = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="min-h-screen bg-gray-900 text-white font-sans relative">
+      {/* Mobile Sidebar Toggle Button */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <button
+          onClick={toggleMobileSidebar}
+          className="p-3 bg-indigo-600 rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-300"
+        >
+          <FaBars className="w-6 h-6" />
+        </button>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Main Content - Full width on mobile, 2/3 on desktop */}
           <div className="lg:col-span-2">
             <div className="flex justify-between items-center mb-8 animate-fade-in-down">
-              <h1 className="text-4xl font-extrabold text-gray-100 tracking-tight">Home Feed</h1>
+              <h1 className="text-4xl font-extrabold text-gray-100 tracking-tight ml-12 lg:ml-0">Home Feed</h1>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -559,11 +575,33 @@ const Home = ({ onNavigate }) => {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="sticky top-10 space-y-8">
+          {/* Sidebar - Hidden on mobile, shown on desktop */}
+          <div className={`lg:col-span-1 ${showSidebar ? 'block fixed inset-0 z-40 bg-gray-900 p-6 overflow-y-auto' : 'hidden lg:block'}`}>
+            {/* Close button for mobile sidebar */}
+            {showSidebar && (
+              <div className="flex justify-between items-center mb-6 lg:hidden">
+                <h2 className="text-2xl font-bold text-gray-100">Menu</h2>
+                <button
+                  onClick={toggleMobileSidebar}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaTimes className="w-6 h-6" />
+                </button>
+              </div>
+            )}
+            
+            <div className={`${showSidebar ? 'block' : 'sticky top-10'} space-y-8`}>
               <SearchUsers onNavigate={onNavigate} />
             </div>
           </div>
+
+          {/* Overlay for mobile sidebar */}
+          {showSidebar && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+              onClick={toggleMobileSidebar}
+            />
+          )}
         </div>
       </div>
     </div>
