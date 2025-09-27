@@ -15,7 +15,7 @@ const SearchUsers = ({ onNavigate }) => {
   const fetchSuggestions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/suggestions`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}suggestions`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -50,7 +50,7 @@ const SearchUsers = ({ onNavigate }) => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/search?query=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}search?query=${encodeURIComponent(searchQuery)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

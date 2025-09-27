@@ -25,7 +25,7 @@ const UserProfile = ({ userId, onNavigate }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/${userId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}user/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
