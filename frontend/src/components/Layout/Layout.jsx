@@ -34,8 +34,10 @@ const Layout = ({ children, onNavigate, activeTab, hideFooter = false }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100 font-sans">
-      {/* Main Content */}
-      <main className="flex-grow pb-20"> {/* Added padding bottom for footer */}
+      {/* Main Content - Adjust padding based on footer visibility */}
+      <main className={`flex-grow transition-all duration-300 ${
+        hideFooter ? 'pb-4' : 'pb-20'
+      }`}>
         {children}
       </main>
 
@@ -85,7 +87,7 @@ const Layout = ({ children, onNavigate, activeTab, hideFooter = false }) => {
 
       {/* Footer Navigation - Hidden when hideFooter is true */}
       {!hideFooter && (
-        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40">
+        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40 transition-all duration-300">
           <div className="flex justify-around items-center py-3 px-4">
             <button
               onClick={() => handleNavigation('home')}
@@ -132,6 +134,11 @@ const Layout = ({ children, onNavigate, activeTab, hideFooter = false }) => {
             </button>
           </div>
         </footer>
+      )}
+
+      {/* Message Input Space - This creates space for the message input when footer is hidden */}
+      {hideFooter && (
+        <div className="h-20 bg-transparent"></div> // This creates space for the message input
       )}
 
       {/* Overlay for search */}
