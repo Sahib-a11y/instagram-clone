@@ -22,8 +22,7 @@ const socketServer = new SocketServer(server);
 app.use(cors({
     origin: [
         "http://localhost:5000",              // local dev
-        "https://connect-app-amber.vercel.app", // deployed frontend
-        "https://connect-4bjfv6uug-gursahib-singhs-projects.vercel.app"
+        "https://connect-app-eight.vercel.app/", // deployed frontend
 
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
