@@ -19,17 +19,8 @@ const server = createServer(app)
 const socketServer = new SocketServer(server);
 
 // ✅ Fixed CORS config
-app.use(cors({
-    origin: [
-        "http://localhost:5000",              // local dev
-        "https://connect-app-eight.vercel.app/", // deployed frontend
+app.use(cors());
 
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true
-}));
-
-// ✅ Handle OPTIONS preflight requests globally
 app.use((req, res, next) => {
     if (req.method === "OPTIONS") {
         res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
