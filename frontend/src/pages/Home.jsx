@@ -109,13 +109,13 @@ const CreatePost = ({ onPostCreated }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-3xl shadow-2xl p-6 mb-6 animate-fade-in-up">
+    <div className="bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
       <div className="flex items-start space-x-4">
         {user?.pic && (
           <img
             src={user.pic}
             alt="User profile"
-            className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500 shadow-md"
+            className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500"
           />
         )}
         <div className="flex-1">
@@ -127,7 +127,7 @@ const CreatePost = ({ onPostCreated }) => {
               <span className="font-light">Share something...</span>
             </button>
           ) : (
-            <div className="space-y-4 animate-fade-in-down">
+            <div className="space-y-4">
               <input
                 type="text"
                 placeholder="Post title..."
@@ -293,7 +293,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-2xl shadow-xl mb-6">
+    <div className="bg-gray-800 rounded-2xl shadow-lg mb-6">
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -473,41 +473,48 @@ const Home = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
+      {/* Header - Fixed at top */}
+      <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 py-4 px-4">
+        <div className="max-w-2xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-100">Home Feed</h1>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 text-sm"
+            className="flex items-center space-x-2 px-4 py-2 bg-indigo-500 text-white rounded-full hover:bg-indigo-600 disabled:opacity-50 text-sm transition-all"
           >
             {refreshing ? (
               <LoadingSpinner size="sm" color="white" />
             ) : (
               <FaSyncAlt className="w-4 h-4" />
             )}
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
+      </div>
 
-        <CreatePost onPostCreated={() => fetchPosts()} />
+      {/* Main Content - Scrollable */}
+      <div className="px-4 py-6">
+        <div className="max-w-2xl mx-auto">
+          <CreatePost onPostCreated={() => fetchPosts()} />
 
-        <div className="space-y-4">
-          {posts.length === 0 ? (
-            <div className="text-center py-12 bg-gray-800 rounded-2xl">
-              <FaFeather className="mx-auto w-12 h-12 text-gray-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-200 mb-2">Nothing to see here yet</h3>
-              <p className="text-gray-400 text-sm">Be the first to share something!</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                onNavigate={onNavigate}
-                onPostUpdate={fetchPosts}
-              />
-            ))
-          )}
+          <div className="space-y-4">
+            {posts.length === 0 ? (
+              <div className="text-center py-12 bg-gray-800 rounded-2xl">
+                <FaFeather className="mx-auto w-12 h-12 text-gray-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-200 mb-2">Nothing to see here yet</h3>
+                <p className="text-gray-400 text-sm">Be the first to share something!</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  onNavigate={onNavigate}
+                  onPostUpdate={fetchPosts}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
