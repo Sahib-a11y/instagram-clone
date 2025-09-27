@@ -18,7 +18,7 @@ const ChatSearch = ({ onStartConversation, onClose }) => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/search?query=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}search?query=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -50,7 +50,7 @@ const ChatSearch = ({ onStartConversation, onClose }) => {
 
   const handleStartConversation = async (user) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/conversation`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}conversation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
