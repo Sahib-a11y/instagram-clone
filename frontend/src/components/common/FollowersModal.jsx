@@ -17,7 +17,7 @@ const FollowersModal = ({ isOpen, onClose, userId, type, onNavigate }) => {
     
     try {
       const endpoint = type === 'followers' ? `followers/${userId}` : `following/${userId}`;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
