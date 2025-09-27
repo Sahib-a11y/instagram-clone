@@ -5,7 +5,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
 import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 
-const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
+const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter }) => {
   const { token, user } = useAuth();
   const { 
     joinConversation, 
@@ -25,6 +25,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  const [showMessageInput, setShowMessageInput] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const conversationIdRef = useRef(null);
@@ -33,6 +34,33 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const otherParticipant = conversation?.participants?.find(
     p => p._id !== user?._id
   );
+
+  // Toggle message input and notify parent to hide footer
+  const toggleMessageInput = () => {
+    const newState = !showMessageInput;
+    setShowMessageInput(newState);
+    if (onToggleFooter) {
+      onToggleFooter(newState);
+    }
+  };
+
+  // Auto-hide footer when input is focused
+  const handleInputFocus = () => {
+    if (!showMessageInput && onToggleFooter) {
+      onToggleFooter(true);
+    }
+  };
+
+  // Auto-show footer when input is blurred (if empty)
+  const handleInputBlur = () => {
+    sendSocketMessage('typing_stop', { conversationId: conversation._id });
+    
+    // Only show footer if input is empty
+    if (!newMessage.trim() && onToggleFooter) {
+      onToggleFooter(false);
+      setShowMessageInput(false);
+    }
+  };
 
   useEffect(() => {}, [conversation, isConnected, user, otherParticipant]);
 
@@ -386,6 +414,12 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
     });
     setNewMessage('');
 
+    // Hide footer and message input after sending
+    if (onToggleFooter) {
+      onToggleFooter(false);
+    }
+    setShowMessageInput(false);
+
     try {
       console.log('🔌 Sending message via socket:', {
         conversationId: conversation._id,
@@ -448,24 +482,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
     }, 2000);
   };
 
-  const handleInputBlur = () => {
-    sendSocketMessage('typing_stop', { conversationId: conversation._id });
-  };
-
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      messages.forEach((msg, index) => {
-        if (msg.sender._id === user._id) {
-          console.log(`My message ${index + 1}:`, {
-            content: msg.content,
-            status: getMessageStatus(msg),
-            readBy: msg.readBy.map(r => r.user)
-          });
-        }
-      });
-    }
-  }, [messages]);
   const handleManualRefresh = () => {
     fetchMessages();
   };
@@ -497,9 +513,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
-
-
-       //Connection Status Indicator 
+      {/* Connection Status Indicator */}
       <div className={`flex items-center justify-between px-4 py-2 text-xs font-medium ${
         isConnected() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
@@ -552,13 +566,19 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
             )}
           </p>
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-full">
-          <FaEllipsisV className="w-5 h-5" />
+        <button 
+          onClick={toggleMessageInput}
+          className="p-2 hover:bg-gray-100 rounded-full"
+        >
+          <FaPaperPlane className="w-5 h-5" />
         </button>
       </div>
 
-      // Messages 
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 bg-gray-50" style={{ 
+        paddingBottom: showMessageInput ? '100px' : '20px',
+        transition: 'padding-bottom 0.3s ease'
+      }}>
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <LoadingSpinner size="md" />
@@ -629,32 +649,34 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
         )}
       </div>
 
-      //Message Input 
-      <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
-        <div className="flex space-x-3">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            onBlur={handleInputBlur}
-            placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-            disabled={sending}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!newMessage.trim() || sending}
-            className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {sending ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <FaPaperPlane className="w-5 h-5" />
-            )}
-          </button>
+      {/* Message Input */}
+      {showMessageInput && (
+        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 z-30 shadow-lg">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+                disabled={sending}
+                autoFocus
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || sending}
+                className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {sending ? <LoadingSpinner size="sm" /> : <FaPaperPlane className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
