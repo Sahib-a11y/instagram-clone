@@ -35,7 +35,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100 font-sans">
       {/* Main Content */}
-      <main className="flex-grow pb-20"> {/* Added padding bottom for mobile nav */}
+      <main className="flex-grow pb-20"> {/* Added padding bottom for footer */}
         {children}
       </main>
 
@@ -83,8 +83,8 @@ const Layout = ({ children, onNavigate, activeTab }) => {
         </div>
       )}
 
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40">
+      {/* Footer Navigation */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40">
         <div className="flex justify-around items-center py-3 px-4">
           <button
             onClick={() => handleNavigation('home')}
@@ -130,7 +130,7 @@ const Layout = ({ children, onNavigate, activeTab }) => {
             <span className="text-xs font-medium">Logout</span>
           </button>
         </div>
-      </div>
+      </footer>
 
       {/* Overlay for search */}
       {showSearch && (

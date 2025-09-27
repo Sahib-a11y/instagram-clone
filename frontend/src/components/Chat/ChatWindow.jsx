@@ -3,9 +3,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
-import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle, FaHome, FaUserCircle, FaSignOutAlt, FaSearch } from 'react-icons/fa';
+import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 
-const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, activeTab }) => {
+const ChatWindow = ({ conversation, onBack, onConversationUpdate }) => {
   const { token, user } = useAuth();
   const { 
     joinConversation, 
@@ -25,7 +25,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
-  const [showMessageInput, setShowMessageInput] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const conversationIdRef = useRef(null);
@@ -386,7 +385,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
       return newMessages;
     });
     setNewMessage('');
-    setShowMessageInput(false);
 
     try {
       console.log('🔌 Sending message via socket:', {
@@ -472,14 +470,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
     fetchMessages();
   };
 
-  const getNavButtonClasses = (tabName) => {
-    return `flex flex-col items-center p-3 rounded-lg transition-all duration-300 ${
-      activeTab === tabName 
-        ? 'text-indigo-400 bg-gray-700/50 transform scale-105' 
-        : 'text-gray-400 hover:text-indigo-400 hover:bg-gray-700'
-    }`;
-  };
-
   if (!conversation) {
     return (
       <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
@@ -501,53 +491,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
             <p>Select a conversation to start chatting</p>
           </div>
         </div>
-
-        {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40">
-          <div className="flex justify-around items-center py-3 px-4">
-            <button
-              onClick={() => onNavigate('home')}
-              className={getNavButtonClasses('home')}
-            >
-              <FaHome className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Home</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('search')}
-              className={getNavButtonClasses('search')}
-            >
-              <FaSearch className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Search</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('profile')}
-              className={getNavButtonClasses('profile')}
-            >
-              <FaUserCircle className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Profile</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('chat')}
-              className={getNavButtonClasses('chat')}
-            >
-              <FaComments className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Messages</span>
-            </button>
-
-            <button
-              onClick={() => {
-                // Handle logout
-              }}
-              className="flex flex-col items-center p-3 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-900/20 transition-all duration-300"
-            >
-              <FaSignOutAlt className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Logout</span>
-            </button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -556,7 +499,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
     <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
 
 
-       {/* Connection Status Indicator */}
+       //Connection Status Indicator 
       <div className={`flex items-center justify-between px-4 py-2 text-xs font-medium ${
         isConnected() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
@@ -609,16 +552,13 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
             )}
           </p>
         </div>
-        <button 
-          onClick={() => setShowMessageInput(!showMessageInput)}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <FaPaperPlane className="w-5 h-5" />
+        <button className="p-2 hover:bg-gray-100 rounded-full">
+          <FaEllipsisV className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50" style={{ paddingBottom: '80px' }}>
+      // Messages 
+      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <LoadingSpinner size="md" />
@@ -689,79 +629,29 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onNavigate, ac
         )}
       </div>
 
-      {/* Message Input (Hidden by default, shown when icon is clicked) */}
-      {showMessageInput && (
-        <div className="fixed bottom-16 left-0 right-0 p-4 border-t border-gray-200 bg-white z-30">
-          <div className="flex space-x-3">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              onBlur={handleInputBlur}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-              disabled={sending}
-              autoFocus
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || sending}
-              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sending ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <FaPaperPlane className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-40">
-        <div className="flex justify-around items-center py-3 px-4">
+      //Message Input 
+      <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+        <div className="flex space-x-3">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            onBlur={handleInputBlur}
+            placeholder="Type a message..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+            disabled={sending}
+          />
           <button
-            onClick={() => onNavigate('home')}
-            className={getNavButtonClasses('home')}
+            onClick={sendMessage}
+            disabled={!newMessage.trim() || sending}
+            className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <FaHome className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Home</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('search')}
-            className={getNavButtonClasses('search')}
-          >
-            <FaSearch className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Search</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('profile')}
-            className={getNavButtonClasses('profile')}
-          >
-            <FaUserCircle className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Profile</span>
-          </button>
-
-          <button
-            onClick={() => onNavigate('chat')}
-            className={getNavButtonClasses('chat')}
-          >
-            <FaComments className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Messages</span>
-          </button>
-
-          <button
-            onClick={() => {
-              // Handle logout
-            }}
-            className="flex flex-col items-center p-3 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-900/20 transition-all duration-300"
-          >
-            <FaSignOutAlt className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Logout</span>
+            {sending ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <FaPaperPlane className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
