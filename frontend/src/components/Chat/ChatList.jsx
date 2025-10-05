@@ -17,7 +17,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const fetchConversations = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/conversations`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}conversations`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -39,7 +39,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const fetchMessageRequests = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/message-requests`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}message-requests`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -79,7 +79,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const acceptRequest = async (conversationId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/accept-request/${conversationId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}accept-request/${conversationId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
