@@ -61,7 +61,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/messages?limit=100`,
+        `${process.env.REACT_APP_API_URL}conversation/${conversation._id}/messages?limit=100`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

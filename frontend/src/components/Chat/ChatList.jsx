@@ -153,7 +153,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
           : conv
       ));
       try {
-        await fetch(`${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/mark-read`, {
+        await fetch(`${process.env.REACT_APP_API_URL}conversation/${conversation._id}/mark-read`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
