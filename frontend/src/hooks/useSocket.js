@@ -7,12 +7,14 @@ export const useSocket = () => {
   const socketRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const eventListenersRef = useRef(new Map());
 
   useEffect(() => {
     if (token && user) {
       const initializeSocket = () => {
         
         if (socketRef.current) {
+          socketRef.current.removeAllListeners();
           socketRef.current.disconnect();
         }
 
@@ -31,7 +33,7 @@ export const useSocket = () => {
         });
 
         socketRef.current.on('connect', () => {
-          console.log('Connected to server');
+          console.log('Connected to server with ID:', socketRef.current.id);
           reconnectAttemptsRef.current = 0;
         });
 
@@ -59,90 +61,122 @@ export const useSocket = () => {
         socketRef.current.on('reconnect_failed', () => {
           console.error('Reconnection failed');
         });
+
+        socketRef.current.onAny((event, ...args) => {
+          console.log(`Socket event "${event}" received:`, args);
+        });
       };
 
       initializeSocket();
 
       return () => {
         if (socketRef.current) {
-          console.log('Cleaning up socket connection');
           socketRef.current.removeAllListeners();
           socketRef.current.disconnect();
+          socketRef.current = null;
         }
+        eventListenersRef.current.clear();
       };
     }
   }, [token, user]);
 
   const joinConversation = useCallback((conversationId) => {
     if (socketRef.current?.connected && conversationId) {
-      socketRef.current.emit('join_conversation', conversationId);
-      console.log(`Joining conversation: ${conversationId}`);
+      socketRef.current.emit('join_conversation', { conversationId });
     } else {
-      console.warn('Socket not connected, cannot join conversation');
     }
   }, []);
 
   const leaveConversation = useCallback((conversationId) => {
     if (socketRef.current?.connected && conversationId) {
-      socketRef.current.emit('leave_conversation', conversationId);
-      console.log(`Leaving conversation: ${conversationId}`);
+      socketRef.current.emit('leave_conversation', { conversationId });
     }
   }, []);
 
   const sendMessage = useCallback((event, data) => {
     if (socketRef.current?.connected) {
-      console.log(`Sending ${event}:`, data);
       socketRef.current.emit(event, data);
       return true;
     } else {
-      console.error('Socket not connected, cannot send message');
       return false;
     }
   }, []);
 
-  
   const onNewMessage = useCallback((callback) => {
     if (socketRef.current) {
-      socketRef.current.on('new_message', callback);
+      const eventName = 'new_message';
+      socketRef.current.on(eventName, callback);
+      console.log('🎯 Registered new_message listener');
+      
+      
+      const listenerId = `${eventName}_${Date.now()}`;
+      eventListenersRef.current.set(listenerId, { event: eventName, callback });
+      
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.off(eventName, callback);
+          eventListenersRef.current.delete(listenerId);
+        }
+      };
     }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('new_message', callback);
-      }
-    };
+    return () => {};
   }, []);
 
   const onTyping = useCallback((callback) => {
     if (socketRef.current) {
-      socketRef.current.on('user_typing', callback);
+      const eventName = 'user_typing';
+      socketRef.current.on(eventName, callback);
+      
+      const listenerId = `${eventName}_${Date.now()}`;
+      eventListenersRef.current.set(listenerId, { event: eventName, callback });
+      
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.off(eventName, callback);
+          eventListenersRef.current.delete(listenerId);
+        }
+      };
     }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('user_typing', callback);
-      }
-    };
+    return () => {};
   }, []);
 
   const onStopTyping = useCallback((callback) => {
     if (socketRef.current) {
-      socketRef.current.on('user_stop_typing', callback);
+      const eventName = 'user_stop_typing';
+      socketRef.current.on(eventName, callback);
+      console.log('🎯 Registered user_stop_typing listener');
+      
+      const listenerId = `${eventName}_${Date.now()}`;
+      eventListenersRef.current.set(listenerId, { event: eventName, callback });
+      
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.off(eventName, callback);
+          eventListenersRef.current.delete(listenerId);
+        }
+      };
     }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('user_stop_typing', callback);
-      }
-    };
+    return () => {};
   }, []);
 
   const onMessagesRead = useCallback((callback) => {
     if (socketRef.current) {
-      socketRef.current.on('messages_read', callback);
+      const eventName = 'messages_read';
+      socketRef.current.on(eventName, callback);
+
+      
+      const listenerId = `${eventName}_${Date.now()}`;
+      eventListenersRef.current.set(listenerId, { event: eventName, callback });
+      
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.off(eventName, callback);
+          eventListenersRef.current.delete(listenerId);
+
+        }
+      };
     }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('messages_read', callback);
-      }
-    };
+    return () => {};
   }, []);
 
   const onUserStatusChange = useCallback((callback) => {
@@ -166,23 +200,10 @@ export const useSocket = () => {
     }
   }, []);
 
-  const offNewMessage = useCallback((callback) => {
-  if (socketRef.current) {
-    socketRef.current.off('new_message', callback);
-  }
-}, []);
 
-const offTyping = useCallback((callback) => {
-  if (socketRef.current) {
-    socketRef.current.off('user_typing', callback);
-  }
-}, []);
-
-const offStopTyping = useCallback((callback) => {
-  if (socketRef.current) {
-    socketRef.current.off('user_stop_typing', callback);
-  }
-}, []);
+  const getSocket = useCallback(() => {
+    return socketRef.current;
+  }, []);
 
   return {
     joinConversation,
@@ -195,8 +216,6 @@ const offStopTyping = useCallback((callback) => {
     onUserStatusChange,
     isConnected,
     reconnect,
-    offNewMessage,
-    offTyping,
-    offStopTyping
+    getSocket
   };
 };

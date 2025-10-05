@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
-import { FaPaperPlane, FaArrowLeft, FaEllipsisV, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPaperPlane, FaArrowLeft, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
 
 const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter }) => {
   const { token, user } = useAuth();
@@ -15,7 +15,6 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     onTyping, 
     onStopTyping,
     onMessagesRead,
-    onUserStatusChange,
     isConnected 
   } = useSocket();
   
@@ -25,52 +24,44 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
-  const [showMessageInput, setShowMessageInput] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const stopTypingTimeoutRef = useRef(null);
   const conversationIdRef = useRef(null);
   const lastTypingTimeRef = useRef(0);
+  const inputRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const shouldScrollRef = useRef(true);
+  const lastSentTypingRef = useRef('');
+  const lastConversationUpdateRef = useRef(0); // NEW: Track last update time
 
   const otherParticipant = conversation?.participants?.find(
     p => p._id !== user?._id
   );
 
-  // Toggle message input and notify parent to hide footer
-  const toggleMessageInput = () => {
-    const newState = !showMessageInput;
-    setShowMessageInput(newState);
-    if (onToggleFooter) {
-      onToggleFooter(newState);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(typingTimeoutRef.current);
+      clearTimeout(stopTypingTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (conversation && inputRef.current) {
+      setTimeout(() => inputRef.current.focus(), 300);
     }
-  };
+  }, [conversation?._id]);
 
-  // Auto-hide footer when input is focused
-  const handleInputFocus = () => {
-    if (!showMessageInput && onToggleFooter) {
-      onToggleFooter(true);
-    }
-  };
-
-  // Auto-show footer when input is blurred (if empty)
-  const handleInputBlur = () => {
-    sendSocketMessage('typing_stop', { conversationId: conversation._id });
-    
-    // Only show footer if input is empty
-    if (!newMessage.trim() && onToggleFooter) {
-      onToggleFooter(false);
-      setShowMessageInput(false);
-    }
-  };
-
-  useEffect(() => {}, [conversation, isConnected, user, otherParticipant]);
-
-  const fetchMessages = async () => {
-    if (!conversation) return;
+  const fetchMessages = useCallback(async () => {
+    if (!conversation || !isMountedRef.current) return;
     
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}conversation/${conversation._id}/messages?limit=100`,
+        `${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/messages?limit=100`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -80,33 +71,32 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
 
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages || []);
-        
+        if (isMountedRef.current) {
+          setMessages(data.messages || []);
+        }
       }
     } catch (error) {
       console.error('Fetch messages error:', error);
     }
-    setLoading(false);
-  };
+    if (isMountedRef.current) {
+      setLoading(false);
+    }
+  }, [conversation, token]);
 
-  const markMessagesAsRead = async () => {
+  const markMessagesAsRead = useCallback(async () => {
     if (!conversation || !isConnected()) return;
 
     try {      
       sendSocketMessage('mark_messages_read', {
         conversationId: conversation._id
       });
-
     } catch (error) {
       console.error('Mark read error:', error);
     }
-  };
+  }, [conversation, isConnected, sendSocketMessage]);
 
-  
   const isMessageRead = (message) => {
     if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
-    
-    
     return message.readBy.some(read => 
       read.user === otherParticipant?._id
     );
@@ -115,13 +105,11 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   const isMessageDelivered = (message) => {
     if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
     
-    
     if (message.sender._id === user._id) {
       return message.readBy.some(read => 
         read.user !== user._id
       );
     }
-    
     
     return message.readBy.some(read => read.user === user._id);
   };
@@ -133,268 +121,301 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     return 'sent'; 
   };
 
-  
-  const handleNewMessage = useRef((data) => {  
-    if (data.message && data.message.conversation === conversation?._id) {
+  // Scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current && isMountedRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  // Check scroll position
+  const checkScrollPosition = useCallback(() => {
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (!messagesContainer) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    
+    shouldScrollRef.current = distanceFromBottom <= 100;
+  }, []);
+
+  // Typing functions
+  const sendStopTyping = useCallback(() => {
+    if (!conversationIdRef.current || !isConnected()) return;
+    
+    if (lastSentTypingRef.current === 'stop') return;
+    
+    console.log('🛑 Sending stop typing');
+    const success = sendSocketMessage('typing_stop', { 
+      conversationId: conversationIdRef.current,
+      userId: user._id
+    });
+    
+    if (success) {
+      lastSentTypingRef.current = 'stop';
+    }
+    
+    if (stopTypingTimeoutRef.current) {
+      clearTimeout(stopTypingTimeoutRef.current);
+      stopTypingTimeoutRef.current = null;
+    }
+  }, [sendSocketMessage, user._id, isConnected]);
+
+  const sendStartTyping = useCallback(() => {
+    if (!conversationIdRef.current || !isConnected()) return;
+    
+    if (lastSentTypingRef.current === 'start') return;
+    
+    const now = Date.now();
+    if (now - lastTypingTimeRef.current > 1000) {
+      console.log('⌨️ Sending typing start');
+      const success = sendSocketMessage('typing_start', { 
+        conversationId: conversationIdRef.current,
+        userId: user._id,
+        user: { 
+          _id: user._id, 
+          name: user.name, 
+          pic: user.pic 
+        }
+      });
+      
+      if (success) {
+        lastSentTypingRef.current = 'start';
+        lastTypingTimeRef.current = now;
+      }
+    }
+  }, [sendSocketMessage, user._id, user.name, user.pic, isConnected]);
+
+  // FIXED: Message handler with debounced conversation updates
+  const handleNewMessage = useCallback((data) => {  
+    console.log('📨 New message received:', data);
+    
+    if (!isMountedRef.current) return;
+    
+    const messageData = Array.isArray(data) ? data[0] : data;
+    
+    if (messageData.message && messageData.message.conversation === conversationIdRef.current) {
+      console.log('✅ Adding message to UI');
       
       setMessages(prev => {
-        const messageExists = prev.some(msg => msg._id === data.message._id);
+        const messageExists = prev.some(msg => msg._id === messageData.message._id);
         
         if (messageExists) {
+          console.log('⚠️ Message already exists, skipping');
           return prev;
         }
 
-        if (data.tempId) {
-          const optimisticMessageExists = prev.some(msg => msg._id === data.tempId);
+        // Replace optimistic message
+        if (messageData.tempId) {
+          console.log('🔄 Replacing optimistic message with tempId:', messageData.tempId);
+          const updatedMessages = prev.map(msg => 
+            msg._id === messageData.tempId ? { ...messageData.message } : msg
+          );
           
-          if (optimisticMessageExists) {
-            const updatedMessages = prev.map(msg => 
-              msg._id === data.tempId ? { ...data.message } : msg
-            );
+          if (updatedMessages.some(msg => msg._id === messageData.message._id)) {
+            console.log('✅ Optimistic message replaced');
+            
+            // Don't trigger conversation update for optimistic message replacements
+            // This prevents unnecessary parent re-renders
             return updatedMessages;
           }
         }
-        if (data.message.sender._id === user._id) {
-          
-        } else {
+
+        // Add new message
+        console.log('➕ Adding new message to chat');
+        const newMessages = [...prev, messageData.message];            
+        if (messageData.message.sender._id !== user._id) {
+          console.log('📖 Marking messages as read');
           setTimeout(() => {
             markMessagesAsRead();
           }, 100);
         }
         
-        const newMessages = [...prev, data.message];
         return newMessages;
       });
       
-      if (onConversationUpdate) onConversationUpdate();
+      // FIXED: Only trigger conversation update for actual NEW messages (not from current user)
+      // and use debouncing to prevent multiple rapid updates
+      const now = Date.now();
+      const shouldUpdate = messageData.message.sender._id !== user._id && 
+                          now - lastConversationUpdateRef.current > 2000; // 2 second cooldown
       
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      
-    } else {
-      console.log('Message not for current conversation or missing data');
-      console.log('Conversation match:', data.message?.conversation === conversation?._id);
-    }
-  });
-
-  const handleMessageRead = useRef((data) => {
-    
-    if (data.conversationId === conversation?._id) {
-      setMessages(prev => prev.map(msg => {
+      if (shouldUpdate && onConversationUpdate) {
+        console.log('🔄 Triggering conversation update (new incoming message)');
+        lastConversationUpdateRef.current = now;
         
-        if (msg.sender._id === user._id && data.readBy === otherParticipant?._id) {
-        
-          const alreadyRead = msg.readBy.some(read => read.user === data.readBy);
-          if (!alreadyRead) {
-            return {
-              ...msg,
-              readBy: [...msg.readBy, { user: data.readBy, readAt: data.readAt || new Date() }]
-            };
+        // Use setTimeout to prevent blocking and allow UI to update first
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            onConversationUpdate();
           }
-        }
-        return msg;
-      }));
+        }, 100);
+      }
+      
+      setTimeout(scrollToBottom, 100);
+    } else {
+      console.log('❌ Message not for current conversation');
     }
-  });
+  }, [user._id, onConversationUpdate, markMessagesAsRead, scrollToBottom]);
 
-  const handleTyping = useRef((data) => {
+  const handleMessageRead = useCallback((data) => {
+    console.log('📖 Message read receipt data:', data);
     
-    // Prevent rapid typing events
-    const now = Date.now();
-    if (now - lastTypingTimeRef.current < 500) {
-      return;
-    }
-    lastTypingTimeRef.current = now;
+    if (!isMountedRef.current) return;
+    
+    const readDataArray = Array.isArray(data) ? data : [data];
+    
+    readDataArray.forEach((readData) => {
+      if (readData.conversationId === conversationIdRef.current) {
+        console.log('✅ Processing read receipt for conversation:', readData.conversationId);
+        
+        setMessages(prev => prev.map(msg => {
+          if (msg.sender._id === user._id && readData.readBy === otherParticipant?._id) {
+            const alreadyRead = msg.readBy?.some(read => read.user === readData.readBy);
+            if (!alreadyRead) {
+              console.log(`✅ UPDATING message ${msg._id} as READ by ${readData.readBy}`);
+              return {
+                ...msg,
+                readBy: [...(msg.readBy || []), { 
+                  user: readData.readBy, 
+                  readAt: readData.readAt || new Date().toISOString() 
+                }]
+              };
+            }
+          }
+          return msg;
+        }));
+      }
+    });
+  }, [user._id, otherParticipant?._id]);
 
-    if (data.conversationId === conversation?._id && data.userId !== user?._id) {
-      console.log(data.user?.name);
+  const handleTyping = useCallback((data) => {
+    console.log('⌨️ TYPING EVENT RECEIVED:', data);
+    
+    if (!isMountedRef.current) return;
+    
+    const typingData = Array.isArray(data) ? data[0] : data;
+    
+    if (typingData.conversationId === conversationIdRef.current && typingData.userId !== user?._id) {
+      console.log('✅ SHOWING TYPING INDICATOR for user:', typingData.user?.name);
       setIsTyping(true);
-      setTypingUser(data.user);
+      setTypingUser(typingData.user);
       
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
       
       typingTimeoutRef.current = setTimeout(() => {
-
-        setIsTyping(false);
-        setTypingUser(null);
+        if (isMountedRef.current) {
+          console.log('⏰ Hiding typing indicator (timeout)');
+          setIsTyping(false);
+          setTypingUser(null);
+        }
       }, 3000);
     }
-  });
+  }, [user?._id]);
 
-  const handleStopTyping = useRef((data) => {
-    if (data.conversationId === conversation?._id && data.userId !== user?._id) {
+  const handleStopTyping = useCallback((data) => {
+    console.log('🛑 STOP TYPING EVENT RECEIVED:', data);
+    
+    if (!isMountedRef.current) return;
+    
+    const stopTypingData = Array.isArray(data) ? data[0] : data;
+    
+    if (stopTypingData.conversationId === conversationIdRef.current && stopTypingData.userId !== user?._id) {
+      console.log('✅ HIDING TYPING INDICATOR');
       setIsTyping(false);
       setTypingUser(null);
       
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
       }
     }
-  });
+  }, [user?._id]);
 
-  const handleUserStatusChange = useRef((data) => {
-  });
-
+  // Socket setup
   useEffect(() => {
-    
-    const updateHandlers = () => {
-      handleNewMessage.current = (data) => {
-        if (data.message && data.message.conversation === conversation?._id) {
-          setMessages(prev => {
-            const messageExists = prev.some(msg => msg._id === data.message._id);
-            
-            if (messageExists) {
-              return prev;
-            }
-
-            if (data.tempId) {
-              const optimisticMessageExists = prev.some(msg => msg._id === data.tempId);
-              if (optimisticMessageExists) {
-                const updatedMessages = prev.map(msg => 
-                  msg._id === data.tempId ? { ...data.message } : msg
-                );
-                return updatedMessages;
-              }
-            }
-
-            const newMessages = [...prev, data.message];            
-            if (data.message.sender._id !== user._id) {
-              setTimeout(() => markMessagesAsRead(), 100);
-            }
-            
-            return newMessages;
-          });
-          
-          if (onConversationUpdate) onConversationUpdate();
-          setTimeout(() => scrollToBottom(), 100);
-        }
-      };
-
-      handleMessageRead.current = (data) => {
-        
-        if (data.conversationId === conversation?._id) {
-          setMessages(prev => prev.map(msg => {
-            if (msg.sender._id === user._id && data.readBy === otherParticipant?._id) {
-              const alreadyRead = msg.readBy.some(read => read.user === data.readBy);
-              if (!alreadyRead) {
-                console.log(`✅ UPDATING message ${msg._id} as READ by ${data.readBy}`);
-                return {
-                  ...msg,
-                  readBy: [...msg.readBy, { user: data.readBy, readAt: data.readAt || new Date() }]
-                };
-              }
-            }
-            return msg;
-          }));
-        }
-      };
-
-      handleTyping.current = (data) => {
-        
-        const now = Date.now();
-        if (now - lastTypingTimeRef.current < 500) return;
-        lastTypingTimeRef.current = now;
-
-        if (data.conversationId === conversation?._id && data.userId !== user?._id) {
-          setIsTyping(true);
-          setTypingUser(data.user);
-          clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 5000);
-        }
-      };
-
-      handleStopTyping.current = (data) => {
-        if (data.conversationId === conversation?._id && data.userId !== user?._id) {
-          setIsTyping(false);
-          setTypingUser(null);
-          clearTimeout(typingTimeoutRef.current);
-        }
-      };
-
-      handleUserStatusChange.current = (data) => {
-      };
-    };
-
-    updateHandlers();
-  }, [conversation, user, otherParticipant]);
-
-  useEffect(() => {
-    if (conversation) {
-      if (conversationIdRef.current !== conversation._id) {
-        setMessages([]);
-        conversationIdRef.current = conversation._id;
-      }
+    if (conversation?._id && isMountedRef.current) {
+      console.log('🎯 Setting up socket for conversation:', conversation._id);
+      
+      conversationIdRef.current = conversation._id;
+      
       fetchMessages();
-      joinConversation(conversation._id);
 
-      const cleanupNewMessage = onNewMessage((data) => {
-        handleNewMessage.current(data);
-      });
-      const cleanupTyping = onTyping((data) => {
-        handleTyping.current(data);
-      });
-      const cleanupStopTyping = onStopTyping((data) => {
-        handleStopTyping.current(data);
-      });
-      const cleanupMessagesRead = onMessagesRead((data) => {
-        handleMessageRead.current(data);
-      });
-      const cleanupUserStatusChange = onUserStatusChange((data) => {
-        handleUserStatusChange.current(data);
-      });
+      const cleanupNewMessage = onNewMessage(handleNewMessage);
+      const cleanupTyping = onTyping(handleTyping);
+      const cleanupStopTyping = onStopTyping(handleStopTyping);
+      const cleanupMessagesRead = onMessagesRead(handleMessageRead);
+
+      console.log('✅ Socket listeners registered');
+
+      const joinIfConnected = () => {
+        if (isConnected()) {
+          console.log('🔗 Socket connected, joining conversation');
+          joinConversation(conversation._id);
+        }
+      };
+
+      joinIfConnected();
+
+      const connectionCheckInterval = setInterval(() => {
+        if (isConnected() && conversationIdRef.current === conversation._id) {
+          console.log('🔗 Socket now connected, joining conversation');
+          joinConversation(conversation._id);
+          clearInterval(connectionCheckInterval);
+        }
+      }, 1000);
 
       return () => {
+        console.log('🧹 Cleaning up socket listeners for conversation:', conversation._id);
+        clearInterval(connectionCheckInterval);
         leaveConversation(conversation._id);
         cleanupNewMessage();
         cleanupTyping();
         cleanupStopTyping();
         cleanupMessagesRead();
-        cleanupUserStatusChange();
         
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
+        clearTimeout(typingTimeoutRef.current);
+        clearTimeout(stopTypingTimeoutRef.current);
+        
+        if (isMountedRef.current) {
+          setIsTyping(false);
+          setTypingUser(null);
+          lastSentTypingRef.current = '';
         }
       };
     }
-  }, [conversation]);
+  }, [conversation?._id]); // Only depend on conversation._id
 
+  // Mark messages as read when conversation changes
   useEffect(() => {
-    if (conversation && messages.length > 0) {
-      setTimeout(() => {
-        markMessagesAsRead();
-      }, 500);
+    if (conversation && messages.length > 0 && isMountedRef.current) {
+      setTimeout(markMessagesAsRead, 500);
     }
-  }, [conversation]);
+  }, [conversation?._id, messages.length, markMessagesAsRead]);
 
+  // Scroll to bottom when messages or typing state changes
   useEffect(() => {
-    const handleFocus = () => {
-      if (conversation && document.visibilityState === 'visible') {
-        markMessagesAsRead();
-      }
-    };
+    if (isMountedRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, isTyping, scrollToBottom]);
 
-    document.addEventListener('visibilitychange', handleFocus);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleFocus);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [conversation]);
-
+  // Add scroll event listener
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (messagesContainer) {
+      messagesContainer.addEventListener('scroll', checkScrollPosition);
+      return () => {
+        messagesContainer.removeEventListener('scroll', checkScrollPosition);
+      };
+    }
+  }, [checkScrollPosition]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Send message function
   const sendMessage = async () => {
-    if (!newMessage.trim() || !conversation) return;
+    if (!newMessage.trim() || !conversation || !isMountedRef.current) return;
 
     setSending(true);
     
@@ -404,61 +425,87 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
       content: newMessage.trim(),
       sender: { _id: user._id, name: user.name, pic: user.pic },
       createdAt: new Date().toISOString(),
-      readBy: [{ user: user._id, readAt: new Date() }], // Mark as read by sender only
+      readBy: [{ user: user._id, readAt: new Date().toISOString() }],
       isOptimistic: true
     };
     
-    setMessages(prev => {
-      const newMessages = [...prev, tempMessage];
-      return newMessages;
-    });
+    // Add optimistic message
+    console.log('➕ Adding optimistic message with tempId:', tempId);
+    setMessages(prev => [...prev, tempMessage]);
+    const messageContent = newMessage.trim();
     setNewMessage('');
-
-    // Hide footer and message input after sending
-    if (onToggleFooter) {
-      onToggleFooter(false);
-    }
-    setShowMessageInput(false);
 
     try {
       console.log('🔌 Sending message via socket:', {
         conversationId: conversation._id,
-        content: newMessage.trim(),
+        content: messageContent,
         tempId: tempId
       });
 
       const success = sendSocketMessage('send_message', {
         conversationId: conversation._id,
-        content: newMessage.trim(),
+        content: messageContent,
         tempId: tempId
       });
 
       if (!success) {
         throw new Error('Socket not connected');
       }
-      sendSocketMessage('typing_stop', { conversationId: conversation._id });
+
+      sendStopTyping();
+
+      // FIXED: Don't trigger conversation update here - let the socket response handle it
+      // This prevents the parent from refreshing while the message is being sent
 
       setTimeout(() => {
-        setMessages(prev => {
-          const messageStillOptimistic = prev.some(msg => msg._id === tempId && msg.isOptimistic);
-          if (messageStillOptimistic) {
-            const filteredMessages = prev.filter(msg => msg._id !== tempId);
-            return filteredMessages;
-          }
-          return prev;
-        });
+        if (isMountedRef.current) {
+          setMessages(prev => {
+            const messageStillOptimistic = prev.some(msg => msg._id === tempId && msg.isOptimistic);
+            if (messageStillOptimistic) {
+              console.log('❌ Removing optimistic message - not confirmed');
+              return prev.filter(msg => msg._id !== tempId);
+            }
+            return prev;
+          });
+        }
       }, 5000);
 
     } catch (error) {
       console.error('Send message error:', error);
-      setMessages(prev => {
-        const filteredMessages = prev.filter(msg => msg._id !== tempId);
-        console.log('Messages after error removal:', filteredMessages.length);
-        return filteredMessages;
-      });
+      if (isMountedRef.current) {
+        setMessages(prev => prev.filter(msg => msg._id !== tempId));
+      }
     }
-    setSending(false);
+    if (isMountedRef.current) {
+      setSending(false);
+    }
   };
+
+  // Input handler
+  const handleInputChange = useCallback((e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    if (!conversation) return;
+
+    if (stopTypingTimeoutRef.current) {
+      clearTimeout(stopTypingTimeoutRef.current);
+    }
+
+    if (value.trim()) {
+      stopTypingTimeoutRef.current = setTimeout(() => {
+        sendStartTyping();
+        
+        stopTypingTimeoutRef.current = setTimeout(() => {
+          console.log('⏰ User stopped typing (inactivity), sending typing_stop');
+          sendStopTyping();
+        }, 2000);
+      }, 100);
+    } else {
+      console.log('⌨️ Input empty, sending typing_stop');
+      sendStopTyping();
+    }
+  }, [conversation, sendStartTyping, sendStopTyping]);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -467,25 +514,25 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     }
   };
 
-  const handleInputChange = (e) => {
-    setNewMessage(e.target.value);
-    const now = Date.now();
-    if (now - lastTypingTimeRef.current > 1000) {
-      sendSocketMessage('typing_start', { 
-        conversationId: conversation._id 
-      });
-      lastTypingTimeRef.current = now;
-    }
-    clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      sendSocketMessage('typing_stop', { conversationId: conversation._id });
-    }, 2000);
-  };
-
   const handleManualRefresh = () => {
     fetchMessages();
   };
 
+  const handleInputFocus = () => {
+    if (onToggleFooter) {
+      onToggleFooter(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    sendStopTyping();
+    
+    if (!newMessage.trim() && onToggleFooter) {
+      onToggleFooter(false);
+    }
+  };
+
+  // Rest of the component remains the same...
   if (!conversation) {
     return (
       <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
@@ -514,29 +561,20 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-md">
       {/* Connection Status Indicator */}
-      <div className={`flex items-center justify-between px-4 py-2 text-xs font-medium ${
-        isConnected() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
-        <div className="flex items-center">
-          {isConnected() ? (
-            <>
-              <FaWifi className="w-3 h-3 mr-1" />
-              <span>Connected to chat</span>
-            </>
-          ) : (
-            <>
-              <FaExclamationTriangle className="w-3 h-3 mr-1" />
-              <span>Disconnected - reconnecting...</span>
-            </>
-          )}
+      {!isConnected() && (
+        <div className="flex items-center justify-between px-4 py-2 text-xs font-medium bg-red-100 text-red-800">
+          <div className="flex items-center">
+            <FaExclamationTriangle className="w-3 h-3 mr-1" />
+            <span>Disconnected - reconnecting...</span>
+          </div>
+          <button 
+            onClick={handleManualRefresh}
+            className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+          >
+            Refresh
+          </button>
         </div>
-        <button 
-          onClick={handleManualRefresh}
-          className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
-        >
-          Refresh
-        </button>
-      </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center p-4 border-b border-gray-200 bg-white rounded-t-lg">
@@ -559,26 +597,21 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900">{otherParticipant?.name || 'Unknown User'}</h3>
           <p className="text-sm text-gray-500">
-            {otherParticipant?.isOnline ? (
+            {isTyping ? (
+              <span className="text-blue-500 animate-pulse">
+                {typingUser?.name || 'Someone'} is typing...
+              </span>
+            ) : otherParticipant?.isOnline ? (
               <span className="text-green-500">Online</span>
             ) : (
               <span>Last seen <TimeAgo date={otherParticipant?.lastActive} /></span>
             )}
           </p>
         </div>
-        <button 
-          onClick={toggleMessageInput}
-          className="p-2 hover:bg-gray-100 rounded-full"
-        >
-          <FaPaperPlane className="w-5 h-5" />
-        </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50" style={{ 
-        paddingBottom: showMessageInput ? '100px' : '20px',
-        transition: 'padding-bottom 0.3s ease'
-      }}>
+      <div className="flex-1 overflow-y-auto p-4 bg-gray-50" onScroll={checkScrollPosition}>
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <LoadingSpinner size="md" />
@@ -630,7 +663,9 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
                 </div>
               </div>
             ))}
-            {isTyping && typingUser && (
+            
+            {/* Typing Indicator */}
+            {isTyping && (
               <div className="flex justify-start">
                 <div className="bg-white text-gray-900 border border-gray-200 px-4 py-2 rounded-lg">
                   <div className="flex items-center space-x-2">
@@ -639,46 +674,45 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                     </div>
-                    <span className="text-xs text-gray-500">{typingUser.name} is typing...</span>
+                    <span className="text-xs text-gray-500">
+                      {typingUser?.name || 'Someone'} is typing...
+                    </span>
                   </div>
                 </div>
               </div>
             )}
+            
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Message Input */}
-      {showMessageInput && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t border-gray-200 z-30 shadow-lg">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex space-x-3">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                placeholder="Type a message..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                disabled={sending}
-                autoFocus
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!newMessage.trim() || sending}
-                className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {sending ? <LoadingSpinner size="sm" /> : <FaPaperPlane className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+      {/* Message Input - ALWAYS VISIBLE */}
+      <div className="border-t border-gray-200 bg-white p-4">
+        <div className="flex space-x-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            placeholder="Type a message..."
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
+            disabled={sending}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!newMessage.trim() || sending}
+            className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {sending ? <LoadingSpinner size="sm" /> : <FaPaperPlane className="w-5 h-5" />}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default ChatWindow;
+export default React.memo(ChatWindow);

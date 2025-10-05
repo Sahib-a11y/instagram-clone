@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import Layout from './components/Layout/Layout';
@@ -14,6 +14,17 @@ const AppRouter = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [hideNav, setHideNav] = useState(false);
+
+  
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCurrentPage('home');
+      setSelectedUserId(null);
+      setSelectedConversation(null);
+      setHideNav(false);
+    }
+  }, [isAuthenticated]);
 
   if (loading) {
     return (
@@ -23,8 +34,10 @@ const AppRouter = () => {
     );
   }
 
-  // Navigation function
+  
   const navigate = (page, data = null) => {
+    console.log('Navigating to:', page, data);
+    
     setCurrentPage(page);
     
     if (data) {
@@ -35,13 +48,38 @@ const AppRouter = () => {
         setSelectedConversation(data.conversation);
       }
     } else {
-      
       setSelectedUserId(null);
       setSelectedConversation(null);
     }
+
+    
+    if (page === 'chat') {
+      
+      if (data?.conversation) {
+        setHideNav(true);
+      } else {
+        setHideNav(false);
+      }
+    } else {
+ 
+      setHideNav(false);
+    }
   };
 
-  
+
+  const handleSelectConversation = (conversation) => {
+    console.log('Conversation selected in AppRouter:', conversation);
+    setSelectedConversation(conversation);
+    setHideNav(true); 
+  };
+
+ 
+  const handleBackFromChat = () => {
+    console.log('Back from chat window');
+    setSelectedConversation(null);
+    setHideNav(false); 
+  };
+
   const getActiveTab = () => {
     switch (currentPage) {
       case 'profile':
@@ -54,7 +92,6 @@ const AppRouter = () => {
     }
   };
 
-  
   const renderPage = () => {
     if (!isAuthenticated) {
       switch (currentPage) {
@@ -71,7 +108,14 @@ const AppRouter = () => {
       case 'userProfile':
         return <UserProfile userId={selectedUserId} onNavigate={navigate} />;
       case 'chat':
-        return <ChatPage onNavigate={navigate} initialConversation={selectedConversation} />;
+        return (
+          <ChatPage 
+            onNavigate={navigate} 
+            initialConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            onBackFromChat={handleBackFromChat}
+          />
+        );
       default:
         return <Home onNavigate={navigate} />;
     }
@@ -80,7 +124,11 @@ const AppRouter = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {isAuthenticated ? (
-        <Layout onNavigate={navigate} activeTab={getActiveTab()}>
+        <Layout 
+          onNavigate={navigate} 
+          activeTab={getActiveTab()} 
+          hideNav={hideNav}
+        >
           {renderPage()}
         </Layout>
       ) : (

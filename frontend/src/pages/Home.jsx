@@ -427,7 +427,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   );
 };
 
-const Home = ({ onNavigate }) => {
+const Home = ({ onNavigate, onToggleFooter }) => {
   const { token } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -461,6 +461,20 @@ const Home = ({ onNavigate }) => {
 
   const handleRefresh = () => {
     fetchPosts(true);
+  };
+
+  // Handle comment input focus to hide footer
+  const handleCommentFocus = () => {
+    if (onToggleFooter) {
+      onToggleFooter(true);
+    }
+  };
+
+  // Handle comment input blur to show footer
+  const handleCommentBlur = () => {
+    if (onToggleFooter) {
+      onToggleFooter(false);
+    }
   };
 
   if (loading) {
@@ -511,6 +525,8 @@ const Home = ({ onNavigate }) => {
                   post={post}
                   onNavigate={onNavigate}
                   onPostUpdate={fetchPosts}
+                  onCommentFocus={handleCommentFocus}
+                  onCommentBlur={handleCommentBlur}
                 />
               ))
             )}
