@@ -15,13 +15,14 @@ class SocketServer {
             transports: ['websocket', 'polling']
         });
 
-        this.users = new Map(); // userId ------> { socketId, user }
-        this.typingUsers = new Map(); // conversationId -----------> Set of userIds
+        this.users = new Map(); // userId -> { socketId, user, lastSeen }
+        this.typingUsers = new Map(); // conversationId -> Set of userIds
         
         this.setupSocketHandlers();
     }
 
-    setupSocketHandlers() {   ///auth middlewre
+    setupSocketHandlers() {
+        
         this.io.use(async (socket, next) => {
             try {
                 const token = socket.handshake.auth.token;
@@ -40,13 +41,11 @@ class SocketServer {
                 socket.userData = user;
                 next();
             } catch (error) {
-                // console.error('Socket authentication error:', error);
                 next(new Error('Authentication error'));
             }
         });
 
         this.io.on('connection', (socket) => {
-            // console.log(`User connected: ${socket.userData.name} (${socket.userId})`);
             this.handleConnection(socket);
         });
     }
@@ -55,8 +54,7 @@ class SocketServer {
         const userId = socket.userId;
         const userData = socket.userData;
 
-        
-        this.users.set(userId, {   //connection stored of user
+                this.users.set(userId, {
             socketId: socket.id, 
             user: userData,
             lastSeen: new Date()
@@ -68,17 +66,21 @@ class SocketServer {
         
         socket.join(`user_${userId}`);
 
+        
         await this.broadcastOnlineStatus(userId, true);
 
+        
         this.setupSocketEventHandlers(socket);
+
     }
 
     setupSocketEventHandlers(socket) {
         const userId = socket.userId;
 
         
-        socket.on('join_conversation', async (conversationId) => {  // hndle converstion of user
+        socket.on('join_conversation', async (data) => {
             try {
+                const { conversationId } = data;
                 const conversation = await Conversation.findOne({
                     _id: conversationId,
                     participants: userId
@@ -86,11 +88,13 @@ class SocketServer {
 
                 if (conversation) {
                     socket.join(`conversation_${conversationId}`);
-                    // console.log(`User ${userId} joined conversation ${conversationId}`);
-                    socket.join(`user_${userId}`);
-                }else {
-                    console.log(`conversation not found : ${conversationId}`);
                     
+                    
+                    const room = this.io.sockets.adapter.rooms.get(`conversation_${conversationId}`);
+                    
+                    
+                } else {
+                    console.log(`Conversation not found or access denied: ${conversationId}`);
                 }
             } catch (error) {
                 console.error('Join conversation error:', error);
@@ -98,229 +102,177 @@ class SocketServer {
         });
 
         
-        socket.on('leave_conversation', (conversationId) => {   //handle lft conversation 
+        socket.on('leave_conversation', (data) => {
+            const { conversationId } = data;
             socket.leave(`conversation_${conversationId}`);
-            // console.log(`User ${userId} left conversation ${conversationId}`);
+            
         });
 
         
-    socket.on('send_message', async (data) => {
-    try {
-        const { conversationId, content, tempId } = data;
-        const userId = socket.userId;
+        socket.on('send_message', async (data) => {
+            try {
+                const { conversationId, content, tempId } = data;
 
-        console.log(`📤 User ${userId} sending message to conversation ${conversationId}:`, content);
+                
 
-        const conversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: userId
+                const conversation = await Conversation.findOne({
+                    _id: conversationId,
+                    participants: userId
+                });
+
+                if (!conversation) {
+                    socket.emit('message_error', { error: 'Conversation not found', tempId });
+                    return;
+                }
+
+                
+                const message = new Message({
+                    conversation: conversationId,
+                    sender: userId,
+                    content: content.trim(),
+                    isRequestMessage: conversation.isMessageRequest && !conversation.requestAccepted,
+                    readBy: [] // Start with empty readBy array
+                });
+
+                await message.save();
+                await message.populate('sender', 'name pic');
+
+                
+                conversation.lastMessage = message._id;
+                conversation.lastActivity = new Date();
+                await conversation.save();
+
+                
+                const messageData = {
+                    _id: message._id,
+                    conversation: message.conversation,
+                    sender: message.sender,
+                    content: message.content,
+                    createdAt: message.createdAt,
+                    isRequestMessage: message.isRequestMessage,
+                    readBy: [] // Empty for receivers
+                };
+
+                
+                socket.to(`conversation_${conversationId}`).emit('new_message', {
+                    message: messageData,
+                    tempId
+                });
+
+                
+
+                
+                const senderMessageData = {
+                    ...messageData,
+                    readBy: [{
+                        user: userId,
+                        readAt: new Date()
+                    }]
+                };
+                
+                socket.emit('new_message', {
+                    message: senderMessageData,
+                    tempId
+                });
+
+
+            } catch (error) {
+                socket.emit('message_error', { error: 'Failed to send message', tempId: data.tempId });
+            }
         });
 
-        if (!conversation) {
-            console.error('❌ Conversation not found or access denied');
-            socket.emit('message_error', { error: 'Conversation not found', tempId });
-            return;
-        }
-
-        try {
-            // Create message - DON'T mark as read for anyone yet
-            const message = new Message({
-                conversation: conversationId,
-                sender: userId,
-                content: content.trim(),
-                isRequestMessage: conversation.isMessageRequest && !conversation.requestAccepted,
-                readBy: [] // Start with empty readBy array
-            });
-
-            await message.save();
-            await message.populate('sender', 'name pic');
-
-            
-            conversation.lastMessage = message._id;
-            conversation.lastActivity = new Date();
-            await conversation.save();
-
-            const messageData = {
-                _id: message._id,
-                conversation: message.conversation,
-                sender: message.sender,
-                content: message.content,
-                createdAt: message.createdAt,
-                isRequestMessage: message.isRequestMessage,
-                readBy: [] // Empty for receivers
-            };
-            this.io.to(`conversation_${conversationId}`).emit('new_message', {
-                message: messageData,
-                tempId
-            });
-
-            console.log(`📨 Message broadcasted to conversation ${conversationId}`);
-            const senderMessageData = {
-                ...messageData,
-                readBy: [{
-                    user: userId,
-                    readAt: new Date()
-                }]
-            };
-            socket.emit('new_message', {
-                message: senderMessageData,
-                tempId
-            });
-
-            console.log(`✅ Sent personalized message to sender ${userId}`);
-
-        } catch (error) {
-            console.error('Error saving message:', error);
-            socket.emit('message_error', { error: 'Failed to save message', tempId });
-        }
-
-    } catch (error) {
-        console.error('Send message error:', error);
-        socket.emit('message_error', { error: 'Failed to send message', tempId: data.tempId });
-    }
-});
-        socket.on('typing_start', (data) => {   //hndle typing indicator
+                socket.on('typing_start', (data) => {
             this.handleTypingStart(socket, data);
         });
 
+        
         socket.on('typing_stop', (data) => {
             this.handleTypingStop(socket, data);
         });
-socket.on('mark_messages_read', async (data) => {
-  try {
-    const { conversationId } = data;
-    const userId = socket.userId;
 
-    console.log(`User ${userId} marking messages as read in conversation ${conversationId}`);
+        socket.on('mark_messages_read', async (data) => {
+            try {
+                const { conversationId } = data;
 
-    // Update messages in database
-    const result = await Message.updateMany(
-      {
-        conversation: conversationId,
-        sender: { $ne: userId },
-        "readBy.user": { $ne: userId }
-      },
-      {
-        $push: {
-          readBy: {
-            user: userId,
-            readAt: new Date()
-          }
-        }
-      }
-    );
+                console.log(`User ${userId} marking messages as read in conversation ${conversationId}`);
 
-    // console.log(`Updated ${result.modifiedCount} messages as read`);
+                const result = await Message.updateMany(
+                    {
+                        conversation: conversationId,
+                        sender: { $ne: userId },
+                        "readBy.user": { $ne: userId }
+                    },
+                    {
+                        $push: {
+                            readBy: {
+                                user: userId,
+                                readAt: new Date()
+                            }
+                        }
+                    }
+                );
 
-    // Find the conversation to get all participants
-    const conversation = await Conversation.findById(conversationId).populate('participants');
-    
-    if (conversation) {
-      conversation.participants.forEach(participant => {
-        if (participant._id.toString() !== userId) {
-          this.io.to(`user_${participant._id}`).emit('messages_read', {
-            conversationId: conversationId,
-            readBy: userId,
-            readAt: new Date()
-          });
-          console.log(`Notified user ${participant._id} about read status`);
-        }
-      });
-    }
+                
+                const conversation = await Conversation.findById(conversationId).populate('participants');
+                
+                if (conversation) {
+                
+                    conversation.participants.forEach(participant => {
+                        if (participant._id.toString() !== userId) {
+                            this.io.to(`user_${participant._id}`).emit('messages_read', {
+                                conversationId: conversationId,
+                                readBy: userId,
+                                readAt: new Date()
+                            });
+                            
+                        }
+                    });
+                }
 
-  } catch (error) {
-    console.error('Error marking messages as read:', error);
-  }
-});
+            } catch (error) {
+                console.error('Error marking messages as read:', error);
+            }
+        });
 
-// Add a new handler for individual message read receipts
-
-
-        socket.on('disconnect', () => { //hndle disconnect
+        
+        socket.on('disconnect', () => {
             this.handleDisconnection(socket);
         });
-    }
-
-    async handleSendMessage(socket, data) {
-        const { conversationId, content, tempId } = data;
-        const userId = socket.userId;
-
-        // console.log(`User ${userId} sending message to conversation ${conversationId}:`, content);
-
-        
-        const conversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: userId
-        });
-
-        if (!conversation) {
-            // console.error('Conversation not found or access denied');
-            socket.emit('message_error', { error: 'Conversation not found', tempId });
-            return;
-        }
-
-        
-        if (conversation.isMessageRequest && !conversation.requestAccepted && 
-            conversation.requestFrom.toString() !== userId) {
-            // console.error('Cannot send message to unaccepted request');
-            socket.emit('message_error', { error: 'Cannot send message to unaccepted request', tempId });
-            return;
-        }
-
-        try {
-            // Create message
-            const message = new Message({
-                conversation: conversationId,
-                sender: userId,
-                content: content.trim(),
-                isRequestMessage: conversation.isMessageRequest && !conversation.requestAccepted
-            });
-
-            await message.save();
-            await message.populate('sender', 'name pic');
-
-            // Update conversation
-            conversation.lastMessage = message._id;
-            conversation.lastActivity = new Date();
-            await conversation.save();
-
-            // console.log(`Message saved: ${message._id}`);
-
-            // Send to all participants in the conversation
-            this.io.to(`conversation_${conversationId}`).emit('new_message', {
-                message,
-                tempId
-            });
-
-            // console.log(`📨 Message broadcasted to conversation ${conversationId}`);
-
-        } catch (error) {
-            // console.error('Error saving message:', error);
-            socket.emit('message_error', { error: 'Failed to save message', tempId });
-        }
     }
 
     handleTypingStart(socket, data) {
         const { conversationId } = data;
         const userId = socket.userId;
 
-        // console.log(`User ${userId} started typing in conversation ${conversationId}`);
+        
 
+        
+        const room = this.io.sockets.adapter.rooms.get(`conversation_${conversationId}`);
+        
+
+        
         if (!this.typingUsers.has(conversationId)) {
             this.typingUsers.set(conversationId, new Set());
         }
-
         this.typingUsers.get(conversationId).add(userId);
+
+        
+        const userData = {
+            _id: socket.userData._id,
+            name: socket.userData.name,
+            pic: socket.userData.pic
+        };
 
         socket.to(`conversation_${conversationId}`).emit('user_typing', {
             conversationId,
             userId,
-            user: socket.userData
+            user: userData
         });
 
-
-        setTimeout(() => {   //clear typing indicator when not in use
+        
+        setTimeout(() => {
             if (this.typingUsers.has(conversationId) && this.typingUsers.get(conversationId).has(userId)) {
+                console.log(`Auto-stopping typing for user ${userId} in conversation ${conversationId}`);
                 this.handleTypingStop(socket, data);
             }
         }, 3000);
@@ -330,7 +282,8 @@ socket.on('mark_messages_read', async (data) => {
         const { conversationId } = data;
         const userId = socket.userId;
 
-        // console.log(`User ${userId} stopped typing in conversation ${conversationId}`);
+        
+        const room = this.io.sockets.adapter.rooms.get(`conversation_${conversationId}`);
 
         if (this.typingUsers.has(conversationId)) {
             this.typingUsers.get(conversationId).delete(userId);
@@ -340,61 +293,34 @@ socket.on('mark_messages_read', async (data) => {
             }
         }
 
-        // Broadcast to others in conversation
+       
+        const userData = {
+            _id: socket.userData._id,
+            name: socket.userData.name,
+            pic: socket.userData.pic
+        };
+
         socket.to(`conversation_${conversationId}`).emit('user_stop_typing', {
             conversationId,
-            userId
+            userId,
+            user: userData
         });
-    }
 
-    async handleMarkMessagesRead(socket, data) {
-        const { conversationId } = data;
-        const userId = socket.userId;
-
-        try {
-            
-            const result = await Message.updateMany(
-                {
-                    conversation: conversationId,
-                    sender: { $ne: userId },
-                    "readBy.user": { $ne: userId }
-                },
-                {
-                    $push: {
-                        readBy: {
-                            user: userId,
-                            readAt: new Date()
-                        }
-                    }
-                }
-            );
-
-            // console.log(`User ${userId} marked messages as read in conversation ${conversationId}`);
-
-            
-            socket.to(`conversation_${conversationId}`).emit('messages_read', {
-                conversationId,
-                readBy: userId,
-                readAt: new Date()
-            });
-
-        } catch (error) {
-            // console.error('Error marking messages as read:', error);
-        }
     }
 
     async handleDisconnection(socket) {
         const userId = socket.userId;
+        const userName = socket.userData?.name || 'Unknown';
         
         if (this.users.has(userId)) {
-            console.log(`User disconnected: ${socket.userData.name} (${userId})`);
-            
-            
+        
             this.users.delete(userId);
-            await this.updateUserOnlineStatus(userId, false);
-            await this.broadcastOnlineStatus(userId, false);
             
-            this.clearUserFromTyping(userId);   //clr typing indicotor
+            await this.updateUserOnlineStatus(userId, false);
+        
+            await this.broadcastOnlineStatus(userId, false);
+        
+            this.clearUserFromTyping(userId);
         }
     }
 
@@ -405,9 +331,9 @@ socket.on('mark_messages_read', async (data) => {
                 lastActive: new Date(),
                 socketId: isOnline ? socketId : null
             });
-            // console.log(`User ${userId} status updated: ${isOnline ? 'Online' : 'Offline'}`);
+            
         } catch (error) {
-            // console.error('Update online status error:', error);
+            console.error('Update online status error:', error);
         }
     }
 
@@ -420,7 +346,8 @@ socket.on('mark_messages_read', async (data) => {
             const connections = [...user.followers, ...user.following];
             const uniqueConnections = [...new Set(connections.map(u => u._id.toString()))];
 
-            uniqueConnections.forEach(connectionId => {  //notify all cnnected friends
+          
+            uniqueConnections.forEach(connectionId => {
                 const connection = this.users.get(connectionId);
                 if (connection) {
                     this.io.to(connection.socketId).emit('user_status_change', {
@@ -431,23 +358,25 @@ socket.on('mark_messages_read', async (data) => {
                 }
             });
 
-            console.log(`status change for user ${userId}: ${isOnline ? 'Online' : 'Offline'}`);
-
         } catch (error) {
-            console.error('online status error:', error);
+            console.error(error);
         }
     }
 
     clearUserFromTyping(userId) {
+        
+        
         for (const [conversationId, typingUsers] of this.typingUsers.entries()) {
             if (typingUsers.has(userId)) {
                 typingUsers.delete(userId);
-                
-                
-                this.io.to(`conversation_${conversationId}`).emit('user_stop_typing', {  //notfy other when stoppd typing indicator
+            
+                this.io.to(`conversation_${conversationId}`).emit('user_stop_typing', {
                     conversationId,
-                    userId
+                    userId,
+                    user: { _id: userId } // Minimal user data
                 });
+                
+                
                 
                 if (typingUsers.size === 0) {
                     this.typingUsers.delete(conversationId);
@@ -456,23 +385,43 @@ socket.on('mark_messages_read', async (data) => {
         }
     }
 
-    getOnlineUsersList(excludeUserId) {
+    
+    getOnlineUsersList(excludeUserId = null) {
         const onlineUsers = [];
         for (const [userId, data] of this.users.entries()) {
             if (userId !== excludeUserId) {
                 onlineUsers.push({
                     userId,
                     user: data.user,
-                    lastSeen: data.lastSeen
+                    lastSeen: data.lastSeen,
+                    socketId: data.socketId
                 });
             }
         }
         return onlineUsers;
     }
 
-    
-    getIO() {  //methd to get socket for parts of the app
+    getUserSocket(userId) {
+        return this.users.get(userId);
+    }
+
+    isUserOnline(userId) {
+        return this.users.has(userId);
+    }
+    getIO() {
         return this.io;
+    }
+
+
+    getServerStats() {
+        return {
+            totalConnections: this.users.size,
+            activeConversations: this.typingUsers.size,
+            typingUsers: Array.from(this.typingUsers.entries()).map(([conversationId, users]) => ({
+                conversationId,
+                typingUsers: Array.from(users)
+            }))
+        };
     }
 }
 
