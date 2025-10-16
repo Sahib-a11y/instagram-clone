@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
     
     try {
-      const response = await fetch(`$${API_BASE}/signup`, {
+      const response = await fetch(`${API_BASE}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
