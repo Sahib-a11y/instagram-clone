@@ -132,8 +132,8 @@
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       try {
-        console.log('API URL:',`${process.env.REACT_APP_API_URL}signin`);
         const response = await fetch(`${API_BASE}/signin`, {
+          
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -142,6 +142,7 @@
         });
 
         const data = await response.json();
+        console.log('API URL:',`${process.env.REACT_APP_API_URL}signin`);
 
         if (response.ok) {
           dispatch({
