@@ -50,10 +50,18 @@ const Login = ({ onNavigate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log('🔍 Form submitted with:', formData); // Debug log
+    console.log('🔍 Email:', formData.email, 'Type:', typeof formData.email);
+    console.log('🔍 Password:', formData.password ? '***' : 'EMPTY', 'Type:', typeof formData.password);
+    
+
     
     if (!validateForm()) {
       return;
     }
+
+
 
     const result = await login(formData.email, formData.password);
     if (result.success) {
