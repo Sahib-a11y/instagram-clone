@@ -133,7 +133,7 @@
       
       try {
         // console.log('API URL:',`${process.env.REACT_APP_API_URL}/signin`);
-        const response = await fetch(` ${API_BASE}signin`, {
+        const response = await fetch(`${API_BASE}signin`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
