@@ -132,7 +132,7 @@
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       try {
-        const response = await fetch(`${API_BASE}/signin`, {
+        const response = await fetch(`${API_BASE}/signin`,{
           
           method: 'POST',
           headers: {
@@ -142,7 +142,7 @@
         });
 
         const data = await response.json();
-        console.log('API URL:',`${process.env.REACT_APP_API_URL}signin`);
+        console.log('API URL:',`${process.env.REACT_APP_API_URL}/signin`);
 
         if (response.ok) {
           dispatch({
