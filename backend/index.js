@@ -18,18 +18,32 @@ const server = createServer(app)
 
 const socketServer = new SocketServer(server);
 
-// ✅ Fixed CORS config
-app.use(cors());
+// ✅ FIXED CORS - Allow your frontend domain
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://connect-app-eight.vercel.app',  // Your frontend domain
+    'https://connect-app-eight.vercel.app/',
+];
 
-app.use((req, res, next) => {
-    if (req.method === "OPTIONS") {
-        res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-        res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        return res.sendStatus(200);
-    }
-    next();
-});
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) === -1) {
+            console.log('❌ CORS blocked origin:', origin);
+            return callback(new Error('CORS policy violation'), false);
+        }
+        return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+}));
+
+// Handle preflight requests
+app.options('*', cors());
 
 app.use(
     fileUpload({
@@ -46,9 +60,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 async function DBConnect() {
     try {
         await mongoose.connect(process.env.MONGOURI)
-        console.log('DB connected Successfully')
+        console.log('✅ DB connected Successfully')
     } catch (error) {
-        console.log("MongoDB connection error: ", error)
+        console.log("❌ MongoDB connection error: ", error)
         process.exit(1)
     }
 }
@@ -68,9 +82,10 @@ app.use(storyrouter)
 app.use(uploadrouter)
 app.use(chatrouter)
 
-app.set('socketio', socketServer.getIO());  //socket for routes if need
+app.set('socketio', socketServer.getIO());
 
 app.use((err, req, res, next) => {
+    console.error('Error:', err);
     res.status(500).json({
         error: 'Internal Server Error',
         message: err.message
@@ -82,8 +97,8 @@ DBConnect()
 const PORT = process.env.PORT || 5000
 
 server.listen(PORT, () => {
-    console.log(`Server is running at ${PORT}`)
-    console.log(`Frontend should connect to ${PORT}`)
+    console.log(`✅ Server is running at ${PORT}`)
+    console.log(`✅ Allowed origins:`, allowedOrigins)
 })
 
 export default app
