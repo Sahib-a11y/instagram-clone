@@ -18,7 +18,7 @@ const Register = ({ onNavigate }) => {
 
   useEffect(() => {
     if (error) clearError();
-  }, []);
+  }, [error, clearError]);
 
   const validateForm = () => {
     const errors = {};

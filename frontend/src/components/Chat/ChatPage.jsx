@@ -40,13 +40,7 @@ const ChatPage = ({ onNavigate, initialConversation, onSelectConversation, onBac
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleNewConversation = (conversation) => {
-    setNewConversation(conversation);
-    setSelectedConversation(conversation);
-    if (onSelectConversation) {
-      onSelectConversation(conversation);
-    }
-  };
+
 
   const handleCloseChat = () => {
     if (selectedConversation) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { FaSearch, FaUserPlus, FaTimes } from 'react-icons/fa';
@@ -10,7 +10,7 @@ const ChatSearch = ({ onStartConversation, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  const searchUsers = async (query) => {
+  const searchUsers = useCallback(async (query) => {
     if (query.trim().length < 2) {
       setSearchResults([]);
       return;
@@ -32,7 +32,7 @@ const ChatSearch = ({ onStartConversation, onClose }) => {
       console.error('Search error:', error);
     }
     setLoading(false);
-  };
+  }, [token]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -46,7 +46,7 @@ const ChatSearch = ({ onStartConversation, onClose }) => {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   const handleStartConversation = async (user) => {
     try {

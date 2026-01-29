@@ -1,34 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import TimeAgo from '../components/common/TimeAgo';
 import PostCard from '../components/Post/PostCard';
 import {
   FaImage,
   FaTimes,
-  FaHeart,
-  FaRegHeart,
-  FaComment,
-  FaShareAlt,
-  FaPaperPlane,
-  FaEllipsisH,
   FaSyncAlt,
   FaFeather,
 } from 'react-icons/fa';
 
-const IconButton = ({ children, onClick, className = '', disabled, tooltip = '' }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className={`p-3 rounded-full transition-all duration-300 transform hover:scale-110 ${className} ${
-      disabled ? 'opacity-50 cursor-not-allowed' : ''
-    }`}
-    aria-label={tooltip}
-    title={tooltip}
-  >
-    {children}
-  </button>
-);
+
 
 const CreatePost = ({ onPostCreated }) => {
   const { token, user } = useAuth();

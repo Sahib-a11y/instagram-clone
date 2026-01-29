@@ -201,10 +201,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     return date.toLocaleDateString();
   };
 
-  const truncateText = (text, maxLength) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
+
 
   return (
     <div className="bg-white rounded-lg shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">

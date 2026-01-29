@@ -54,7 +54,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     }
   };
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([fetchConversations(), fetchMessageRequests()]);
@@ -62,11 +62,11 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchAllData();
-  }, [refreshTrigger]);
+  }, [fetchAllData, refreshTrigger]);
 
   useEffect(() => {
     if (onNewConversation) {
@@ -143,12 +143,10 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
   };
 
   const handleConversationSelect = async (conversation) => {
-  
     const currentUnreadCount = getUnreadMessageCount(conversation);
     if (currentUnreadCount > 0) {
-    
-      setConversations(prev => prev.map(conv => 
-        conv._id === conversation._id 
+      setConversations(prev => prev.map(conv =>
+        conv._id === conversation._id
           ? { ...conv, unreadCount: 0 }
           : conv
       ));
@@ -164,7 +162,6 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
       }
     }
 
-    
     onSelectConversation(conversation);
   };
 
@@ -271,27 +268,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
   }, [user._id]);
 
  
-  const handleTypingIndicator = useCallback((typingData) => {
-    console.log('ChatList: Typing indicator:', typingData);
-    
-    const typingDataArray = Array.isArray(typingData) ? typingData : [typingData];
-    
-    typingDataArray.forEach((data) => {
-      if (data.conversationId && data.userId !== user._id) {
-      }
-    });
-  }, [user._id]);
 
-
-  const handleStopTypingIndicator = useCallback((typingData) => {
-    
-    const typingDataArray = Array.isArray(typingData) ? typingData : [typingData];
-    
-    typingDataArray.forEach((data) => {
-      if (data.conversationId && data.userId !== user._id) {
-      }
-    });
-  }, [user._id]);
 
 
   useEffect(() => {
@@ -300,13 +277,13 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     }
 
     console.log('🎯 ChatList: Setting up socket listeners');
-    
+
     const cleanupNewMessage = onNewMessage(updateConversationOnNewMessage);
-  
+
     const cleanupMessagesRead = onMessagesRead(markConversationAsRead);
-    
+
     const cleanupTyping = onTyping(handleTypingIndicator);
-    
+
     const cleanupStopTyping = onStopTyping(handleStopTypingIndicator);
 
     return () => {
@@ -316,12 +293,12 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
       cleanupStopTyping();
     };
   }, [
-    isConnected, 
-    onNewMessage, 
-    onMessagesRead, 
+    isConnected,
+    onNewMessage,
+    onMessagesRead,
     onTyping,
     onStopTyping,
-    updateConversationOnNewMessage, 
+    updateConversationOnNewMessage,
     markConversationAsRead,
     handleTypingIndicator,
     handleStopTypingIndicator

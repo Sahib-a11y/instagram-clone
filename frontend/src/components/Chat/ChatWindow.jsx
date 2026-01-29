@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
-import { FaPaperPlane, FaArrowLeft, FaComments, FaCheck, FaCheckDouble, FaCircle, FaWifi, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPaperPlane, FaArrowLeft, FaComments, FaCheck, FaCheckDouble, FaCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter }) => {
   const { token, user } = useAuth();
@@ -338,9 +338,9 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   useEffect(() => {
     if (conversation?._id && isMountedRef.current) {
       console.log('🎯 Setting up socket for conversation:', conversation._id);
-      
+
       conversationIdRef.current = conversation._id;
-      
+
       fetchMessages();
 
       const cleanupNewMessage = onNewMessage(handleNewMessage);
@@ -375,10 +375,10 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         cleanupTyping();
         cleanupStopTyping();
         cleanupMessagesRead();
-        
+
         clearTimeout(typingTimeoutRef.current);
         clearTimeout(stopTypingTimeoutRef.current);
-        
+
         if (isMountedRef.current) {
           setIsTyping(false);
           setTypingUser(null);
@@ -386,7 +386,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         }
       };
     }
-  }, [conversation?._id]); // Only depend on conversation._id
+  }, [conversation?._id, fetchMessages, handleNewMessage, handleTyping, handleStopTyping, handleMessageRead, joinConversation, leaveConversation, onNewMessage, onTyping, onStopTyping, onMessagesRead, isConnected]);
 
   // Mark messages as read when conversation changes
   useEffect(() => {
