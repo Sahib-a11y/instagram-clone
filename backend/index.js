@@ -1,7 +1,6 @@
 import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
-import { createServer } from 'http'
 import 'dotenv/config';
 
 import Authrouter from "./routes/auth.js"
@@ -11,12 +10,12 @@ import storyrouter from './routes/story.js'
 import uploadrouter from "./routes/upload.js"
 import fileUpload from 'express-fileupload';
 import chatrouter from './routes/chat.js';
-import SocketServer from './socket/socketServer.js';
+
+// Note: Socket.IO disabled for Vercel serverless deployment
+// const SocketServer = require('./socket/socketServer.js');
+// const { createServer } = require('http');
 
 const app = express()
-const server = createServer(app)
-
-const socketServer = new SocketServer(server);
 
 // ✅ Fixed CORS config for Vercel deployment - Allow all origins temporarily
 const corsOptions = {
@@ -69,7 +68,8 @@ app.use(storyrouter)
 app.use(uploadrouter)
 app.use(chatrouter)
 
-app.set('socketio', socketServer.getIO());  //socket for routes if need
+// Note: Socket.IO disabled for Vercel serverless deployment
+// app.set('socketio', socketServer.getIO());  //socket for routes if need
 
 app.use((err, req, res, next) => {
     res.status(500).json({
@@ -78,13 +78,9 @@ app.use((err, req, res, next) => {
     })
 })
 
+// Connect to database
 DBConnect()
 
-const PORT = process.env.PORT || 5000
-
-server.listen(PORT, () => {
-    console.log(`Server is running at ${PORT}`)
-    console.log(`Frontend should connect to ${PORT}`)
-})
-
+// Vercel serverless functions don't need explicit server.listen()
+// The app is exported and Vercel handles the server setup
 export default app
