@@ -7,15 +7,7 @@ import {
   FaTimes,
   FaSyncAlt,
   FaFeather,
-  FaHeart,
-  FaRegHeart,
-  FaComment,
-  FaShareAlt,
-  FaPaperPlane,
-  FaEllipsisH,
 } from 'react-icons/fa';
-import TimeAgo from '../components/common/TimeAgo';
-import { IconButton } from '@mui/material';
 
 
 
