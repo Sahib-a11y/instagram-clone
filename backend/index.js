@@ -18,14 +18,28 @@ const server = createServer(app)
 
 const socketServer = new SocketServer(server);
 
-// ✅ Fixed CORS config
-app.use(cors());
+// ✅ Fixed CORS config for Vercel deployment
+const corsOptions = {
+    origin: [
+        'http://localhost:3000',
+        'https://instagram-clone-mmvnz20nq-gursahib-singhs-projects.vercel.app',
+        'https://instagram-clone.vercel.app',
+        process.env.FRONTEND_URL
+    ].filter(Boolean), // Remove undefined values
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
     if (req.method === "OPTIONS") {
         res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
         res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin, X-Requested-With");
+        res.header("Access-Control-Allow-Credentials", "true");
         return res.sendStatus(200);
     }
     next();
