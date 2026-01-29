@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useAuth } from '../../context/AuthContext';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const { user, token } = useAuth();
@@ -68,7 +68,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.result.Comment || []);
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        onPostUpdate(post._id, { Comment: updatedComments });
         setNewComment('');
       } else {
         const errorData = await response.json();
@@ -100,7 +102,10 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.result.Comment || []);
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        // Update parent post data
+        onPostUpdate(post._id, { Comment: updatedComments });
       } else {
         const errorData = await response.json();
         console.error('Comment like error:', errorData);
@@ -123,7 +128,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.result.Comment || []);
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        onPostUpdate(post._id, { Comment: updatedComments });
       } else {
         const errorData = await response.json();
         console.error('Delete comment error:', errorData);
@@ -153,7 +160,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.result.Comment || []);
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        onPostUpdate(post._id, { Comment: updatedComments });
         setNewReply('');
         setReplyingTo(null);
       } else {
@@ -353,28 +362,135 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
             ) : (
               comments.map((comment, index) => (
                 <div
-                  key={index}
-                  className="p-4 border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
+                  key={comment._id || index}
+                  className="p-4 border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex space-x-3">
                     <img
                       src={comment.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
                       alt="Commenter"
-                      className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                      className="w-6 h-6 rounded-full object-cover border border-gray-200 cursor-pointer"
+                      onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium text-sm text-gray-900 hover:text-blue-600 transition-colors">
+                        <span
+                          className="font-medium text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+                          onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
+                        >
                           {comment.postedBy?.name || 'Anonymous'}
                         </span>
                         <span className="text-xs text-gray-500">
                           {formatDate(comment.createdAt || Date.now())}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-1 break-words hover:text-blue-600 transition-colors">
+                      <p className="text-sm text-gray-700 mt-1 break-words">
                         {comment.text}
                       </p>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <button
+                          onClick={() => handleCommentLike(comment._id)}
+                          className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                        >
+                          Like
+                        </button>
+                        <button
+                          onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                          className="text-xs text-gray-500 hover:text-blue-500 transition-colors"
+                        >
+                          Reply
+                        </button>
+                        {comment.postedBy._id === user._id && (
+                          <button
+                            onClick={() => handleDeleteComment(comment._id)}
+                            className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                        {comment.replies && comment.replies.length > 0 && (
+                          <button
+                            onClick={() => toggleReplies(comment._id)}
+                            className="text-xs text-gray-500 hover:text-blue-500 transition-colors"
+                          >
+                            {showReplies[comment._id] ? 'Hide' : 'Show'} Replies ({comment.replies.length})
+                          </button>
+                        )}
+                      </div>
+                      {replyingTo === comment._id && (
+                        <div className="mt-2 flex space-x-2">
+                          <input
+                            type="text"
+                            placeholder="Write a reply..."
+                            value={newReply}
+                            onChange={(e) => setNewReply(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleReply(comment._id);
+                              }
+                            }}
+                            disabled={replyLoading}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                            maxLength={200}
+                          />
+                          <button
+                            onClick={() => handleReply(comment._id)}
+                            disabled={!newReply.trim() || replyLoading}
+                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                          >
+                            {replyLoading ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              'Reply'
+                            )}
+                          </button>
+                        </div>
+                      )}
+                      {showReplies[comment._id] && comment.replies && comment.replies.map((reply, rIndex) => (
+                        <div key={reply._id || rIndex} className="mt-2 ml-6 border-l-2 border-gray-200 pl-3">
+                          <div className="flex space-x-2">
+                            <img
+                              src={reply.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
+                              alt="Reply"
+                              className="w-5 h-5 rounded-full object-cover border border-gray-200 cursor-pointer"
+                              onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-1">
+                                <span
+                                  className="font-medium text-xs text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+                                  onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
+                                >
+                                  {reply.postedBy?.name || 'Anonymous'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(reply.createdAt || Date.now())}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 break-words">
+                                {reply.text}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <button
+                                  onClick={() => handleCommentLike(reply._id)}
+                                  className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                                >
+                                  Like
+                                </button>
+                                {reply.postedBy._id === user._id && (
+                                  <button
+                                    onClick={() => handleDeleteComment(reply._id)}
+                                    className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
