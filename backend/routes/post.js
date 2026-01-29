@@ -124,8 +124,9 @@ router.post("/allpost", requireLogin, async(req, res) => {
         const posts = await Post.find()
             .populate('postedBy', 'name pic email')
             .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
             .sort({createdAt: -1})
-            
+
         return res.status(200).json({posts})
     } catch (error) {
         // console.log("Get all posts error:", error)
@@ -140,8 +141,9 @@ router.get("/mypost", requireLogin, async(req, res) => {
         const post = await Post.find({postedBy: _id})
             .populate('postedBy', 'name pic email')
             .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
             .sort({createdAt: -1})
-            
+
         return res.status(200).json({post})
     } catch (error) {
         // console.log("Get my posts error:", error)
@@ -168,27 +170,28 @@ router.get("/subpost", requireLogin, async(req, res) => {
 router.put('/like', requireLogin, async(req, res) => {
     try {
         const {postId} = req.body
-        
+
         if (!postId) {
             return res.status(422).json({error: "Post ID is required"})
         }
-        
+
         const post = await Post.findById(postId)
         if (!post) {
             return res.status(404).json({error: "Post not found"})
         }
-        
+
         if (post.like.includes(req.Userdata._id)) {
             return res.status(422).json({error: "Post already liked"})
         }
-        
+
         const result = await Post.findByIdAndUpdate(postId, {
             $push: {like: req.Userdata._id}
         }, {
             new: true
         }).populate('postedBy', 'name pic email')
           .populate('Comment.postedBy', 'name pic email')
-          
+          .populate('Comment.replies.postedBy', 'name pic email')
+
         return res.status(200).json({msg: "Post liked successfully", result})
     } catch (error) {
         // console.log("Like error:", error)
@@ -200,27 +203,28 @@ router.put('/like', requireLogin, async(req, res) => {
 router.put('/unlike', requireLogin, async(req, res) => {
     try {
         const {postId} = req.body
-        
+
         if (!postId) {
             return res.status(422).json({error: "Post ID is required"})
         }
-        
+
         const post = await Post.findById(postId)
         if (!post) {
             return res.status(404).json({error: "Post not found"})
         }
-        
+
         if (!post.like.includes(req.Userdata._id)) {
             return res.status(422).json({error: "Post not liked yet"})
         }
-        
+
         const result = await Post.findByIdAndUpdate(postId, {
             $pull: {like: req.Userdata._id}
         }, {
             new: true
         }).populate('postedBy', 'name pic email')
           .populate('Comment.postedBy', 'name pic email')
-          
+          .populate('Comment.replies.postedBy', 'name pic email')
+
         return res.status(200).json({msg: "Post unliked successfully", result})
     } catch (error) {
         // console.log("Unlike error:", error)
@@ -243,10 +247,117 @@ router.put("/comment", requireLogin, async(req, res) => {
             new: true
         }).populate('postedBy', 'name pic email')
           .populate('Comment.postedBy', 'name pic email')
-          
+          .populate('Comment.replies.postedBy', 'name pic email')
+
         return res.status(200).json({msg: "Comment added successfully", result})
     } catch (error) {
         // console.log("Comment error:", error)
+        return res.status(500).json({error: "Internal server error"})
+    }
+})
+
+router.put("/comment/like/:postId/:commentId", requireLogin, async(req, res) => {
+    try {
+        const { postId, commentId } = req.params
+
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({error: "Post not found"})
+        }
+
+        const comment = post.Comment.id(commentId)
+        if (!comment) {
+            return res.status(404).json({error: "Comment not found"})
+        }
+
+        if (comment.like.includes(req.Userdata._id)) {
+            return res.status(422).json({error: "Comment already liked"})
+        }
+
+        comment.like.push(req.Userdata._id)
+        await post.save()
+
+        const result = await Post.findById(postId)
+            .populate('postedBy', 'name pic email')
+            .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
+
+        return res.status(200).json({msg: "Comment liked successfully", result})
+    } catch (error) {
+        // console.log("Comment like error:", error)
+        return res.status(500).json({error: "Internal server error"})
+    }
+})
+
+router.put("/comment/reply/:postId/:commentId", requireLogin, async(req, res) => {
+    try {
+        const { postId, commentId } = req.params
+        const { text } = req.body
+
+        if (!text || !text.trim()) {
+            return res.status(422).json({error: "Reply text is required"})
+        }
+
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({error: "Post not found"})
+        }
+
+        const comment = post.Comment.id(commentId)
+        if (!comment) {
+            return res.status(404).json({error: "Comment not found"})
+        }
+
+        const reply = {
+            text: text.trim(),
+            postedBy: req.Userdata._id,
+            createdAt: new Date()
+        }
+
+        comment.replies.push(reply)
+        await post.save()
+
+        const result = await Post.findById(postId)
+            .populate('postedBy', 'name pic email')
+            .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
+
+        return res.status(200).json({msg: "Reply added successfully", result})
+    } catch (error) {
+        // console.log("Reply error:", error)
+        return res.status(500).json({error: "Internal server error"})
+    }
+})
+
+router.delete("/comment/:postId/:commentId", requireLogin, async(req, res) => {
+    try {
+        const { postId, commentId } = req.params
+
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({error: "Post not found"})
+        }
+
+        const comment = post.Comment.id(commentId)
+        if (!comment) {
+            return res.status(404).json({error: "Comment not found"})
+        }
+
+        if (comment.postedBy.toString() !== req.Userdata._id.toString()) {
+            return res.status(403).json({error: "You are not authorized to delete this comment"})
+        }
+
+        post.Comment.pull(commentId)
+        await post.save()
+
+        const result = await Post.findById(postId)
+            .populate('postedBy', 'name pic email')
+            .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
+
+        return res.status(200).json({msg: "Comment deleted successfully", result})
+    } catch (error) {
+        // console.log("Delete comment error:", error)
         return res.status(500).json({error: "Internal server error"})
     }
 })

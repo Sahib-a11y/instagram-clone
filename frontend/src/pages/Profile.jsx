@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TimeAgo from '../components/common/TimeAgo';
@@ -22,7 +22,7 @@ const Profile = ({ onNavigate }) => {
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [modalType, setModalType] = useState(''); // 'followers' or 'following'
 
-  const fetchMyPosts = async () => {
+  const fetchMyPosts = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/mypost`, {
         headers: {
@@ -45,7 +45,7 @@ const Profile = ({ onNavigate }) => {
       console.error('Error fetching posts:', error);
     }
     setLoading(false);
-  };
+  }, [token]);
 
   useEffect(() => {
     if (user) {
@@ -65,7 +65,7 @@ const Profile = ({ onNavigate }) => {
     if (token) {
       fetchMyPosts();
     }
-  }, [token]);
+  }, [fetchMyPosts]);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) {

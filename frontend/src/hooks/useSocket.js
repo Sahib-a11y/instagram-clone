@@ -11,15 +11,17 @@ export const useSocket = () => {
 
   useEffect(() => {
     if (token && user) {
+      const currentEventListeners = eventListenersRef.current;
+
       const initializeSocket = () => {
-        
+
         if (socketRef.current) {
           socketRef.current.removeAllListeners();
           socketRef.current.disconnect();
         }
 
         console.log('Initializing socket connection...');
-        
+
         socketRef.current = io(process.env.REACT_APP_API_URL, {
           auth: {
             token: token
@@ -44,7 +46,7 @@ export const useSocket = () => {
         socketRef.current.on('connect_error', (error) => {
           console.error('Socket connection error:', error);
           reconnectAttemptsRef.current += 1;
-          
+
           if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
             console.error('Max reconnection attempts reached');
           }
@@ -75,7 +77,7 @@ export const useSocket = () => {
           socketRef.current.disconnect();
           socketRef.current = null;
         }
-        eventListenersRef.current.clear();
+        currentEventListeners.clear();
       };
     }
   }, [token, user]);

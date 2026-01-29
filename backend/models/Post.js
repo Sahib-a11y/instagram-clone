@@ -27,7 +27,24 @@ const postschema = new mongoose.Schema({
         createdAt:{
             type:Date,
             default: Date.now
-        }
+        },
+        like:[{type:mongoose.Schema.Types.ObjectId}],
+        replies:[{
+            text:{
+                type: String,
+                required:true
+            },
+            postedBy:{
+                type:mongoose.Schema.Types.ObjectId,
+                ref:"User",
+                required:true
+            },
+            createdAt:{
+                type:Date,
+                default: Date.now
+            },
+            like:[{type:mongoose.Schema.Types.ObjectId}]
+        }]
     }],
     postedBy:{
         type:mongoose.Schema.Types.ObjectId,

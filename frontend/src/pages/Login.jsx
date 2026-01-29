@@ -14,7 +14,7 @@ const Login = ({ onNavigate }) => {
 
   useEffect(() => {
     if (error) clearError();
-  }, []);
+  }, [clearError, error]);
 
   const validateForm = () => {
     const errors = {};
