@@ -14,7 +14,7 @@ const useUserSuggestions = () => {
     setError(null);
 
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
       const apiUrl = `${baseUrl}/suggestions`;
 
       console.log('💡 Suggestions API URL:', apiUrl);

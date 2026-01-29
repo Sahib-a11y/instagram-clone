@@ -20,7 +20,7 @@ const useUserProfile = () => {
     setError(null);
 
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
       const apiUrl = `${baseUrl}/user/${userId}`;
 
       console.log('👤 Profile API URL:', apiUrl);
