@@ -37,31 +37,29 @@ const AppRouter = () => {
   
   const navigate = (page, data = null) => {
     console.log('Navigating to:', page, data);
-    
+
     setCurrentPage(page);
-    
-    if (data) {
-      if (data.userId) {
-        setSelectedUserId(data.userId);
-      }
-      if (data.conversation) {
+
+    if(page !== currentPage) {
+      setSelectedUserId(null)
+      setSelectedConversation(null)
+    }
+    setCurrentPage(page)
+
+    if (page === 'userProfile') {
+      setSelectedUserId(data);
+      setHideNav(false);
+    } else if (page === 'chat') {
+      if (data?.conversation) {
         setSelectedConversation(data.conversation);
+        setHideNav(true);
+      } else {
+        setSelectedConversation(null);
+        setHideNav(false);
       }
     } else {
       setSelectedUserId(null);
       setSelectedConversation(null);
-    }
-
-    
-    if (page === 'chat') {
-      
-      if (data?.conversation) {
-        setHideNav(true);
-      } else {
-        setHideNav(false);
-      }
-    } else {
- 
       setHideNav(false);
     }
   };

@@ -24,7 +24,7 @@ const Profile = ({ onNavigate }) => {
 
   const fetchMyPosts = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}mypost`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/mypost`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -73,7 +73,7 @@ const Profile = ({ onNavigate }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}deletepost/${postId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/deletepost/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -116,7 +116,7 @@ const Profile = ({ onNavigate }) => {
 
     try {
       console.log()
-      const response = await fetch(`${process.env.REACT_APP_API_URL}upload-profile-pic`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/upload-profile-pic`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -141,7 +141,7 @@ const Profile = ({ onNavigate }) => {
 
   const updateProfile = async (updateData) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}updateProfile`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/updateProfile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ const Profile = ({ onNavigate }) => {
 
   const handlePrivacyToggle = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}privacy`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

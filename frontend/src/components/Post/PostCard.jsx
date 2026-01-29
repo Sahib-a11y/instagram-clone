@@ -10,6 +10,10 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [newReply, setNewReply] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [showReplies, setShowReplies] = useState({});
 
   useEffect(() => {
     if (post.like) {
@@ -24,7 +28,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const handleLike = async () => {
     try {
       const endpoint = liked ? '/unlike' : '/like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -83,6 +87,92 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
       e.preventDefault();
       handleComment();
     }
+  };
+
+  const handleCommentLike = async (commentId) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/like/${post._id}/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.result.Comment || []);
+      } else {
+        const errorData = await response.json();
+        console.error('Comment like error:', errorData);
+      }
+    } catch (error) {
+      console.error('Comment like error:', error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${post._id}/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.result.Comment || []);
+      } else {
+        const errorData = await response.json();
+        console.error('Delete comment error:', errorData);
+        alert(errorData.error || 'Failed to delete comment');
+      }
+    } catch (error) {
+      console.error('Delete comment error:', error);
+      alert('Failed to delete comment');
+    }
+  };
+
+  const handleReply = async (commentId) => {
+    if (!newReply.trim()) return;
+
+    setReplyLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          text: newReply.trim()
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.result.Comment || []);
+        setNewReply('');
+        setReplyingTo(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Reply error:', errorData);
+        alert('Failed to add reply');
+      }
+    } catch (error) {
+      console.error('Reply error:', error);
+      alert('Failed to add reply');
+    }
+    setReplyLoading(false);
+  };
+
+  const toggleReplies = (commentId) => {
+    setShowReplies(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
   };
 
   const formatDate = (dateString) => {
@@ -262,7 +352,11 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
               </div>
             ) : (
               comments.map((comment, index) => (
-                <div key={index} className="p-4 border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-colors">
+                <div
+                  key={index}
+                  className="p-4 border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
+                >
                   <div className="flex space-x-3">
                     <img
                       src={comment.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
@@ -271,14 +365,14 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium text-sm text-gray-900">
+                        <span className="font-medium text-sm text-gray-900 hover:text-blue-600 transition-colors">
                           {comment.postedBy?.name || 'Anonymous'}
                         </span>
                         <span className="text-xs text-gray-500">
                           {formatDate(comment.createdAt || Date.now())}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-1 break-words">
+                      <p className="text-sm text-gray-700 mt-1 break-words hover:text-blue-600 transition-colors">
                         {comment.text}
                       </p>
                     </div>

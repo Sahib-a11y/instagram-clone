@@ -3,94 +3,41 @@ import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import TimeAgo from '../components/common/TimeAgo';
 import FollowersModal from '../components/common/FollowersModal';
-import { FaUserFriends, FaGlobe, FaLock, FaUserPlus, FaUserMinus, FaEnvelope, FaImage, FaHeart, FaComment, FaCalendarAlt, FaCheckCircle, FaPaperPlane, FaBroadcastTower } from 'react-icons/fa';
+import { FaUserFriends, FaGlobe, FaLock, FaUserPlus, FaUserMinus, FaEnvelope, FaImage, FaHeart, FaComment, FaCalendarAlt, FaCheckCircle, FaPaperPlane} from 'react-icons/fa';
+import useUserProfile from '../hooks/useUserProfile';
+import useFollow from '../hooks/useFollow';
 
 const UserProfile = ({ userId, onNavigate }) => {
-  const { user: currentUser, token } = useAuth();
-  const [userProfile, setUserProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [canViewPosts, setCanViewPosts] = useState(true);
+  const { user: currentUser } = useAuth();
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [modalType, setModalType] = useState('');
 
-  const fetchUserProfile = async () => {
-    if (!userId) {
-      setError('User ID not provided');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}user/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUserProfile(data.result);
-        setPosts(data.posts || []);
-        setCanViewPosts(data.canViewPosts !== false);
-        setIsFollowing(data.isFollowing || false);
-        setError(null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.msg || 'Failed to fetch user profile');
-      }
-    } catch (error) {
-      // console.error('Error fetching user profile:', error);
-      setError('Network error occurred');
-    }
-    setLoading(false);
-  };
+  // Use custom hooks
+  const { userProfile, posts, loading, error, canViewPosts, isFollowing, fetchUserProfile, refreshProfile } = useUserProfile();
+  const { followUser, unfollowUser, loading: followLoading } = useFollow();
 
   useEffect(() => {
-    fetchUserProfile();
-  }, [userId, currentUser, token]);
+    if (userId) {
+      fetchUserProfile(userId);
+    }
+  }, [userId, fetchUserProfile]);
 
   const handleFollow = async () => {
     if (!userProfile) return;
 
-    setFollowLoading(true);
     try {
-      const endpoint = isFollowing ? '/unfollow' : '/follow';
-      const bodyKey = isFollowing ? 'UnfollowId' : 'followId';
-
-      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          [bodyKey]: userId
-        })
-      });
-
-      if (response.ok) {
-        setIsFollowing(!isFollowing);
-
-        
-        setUserProfile(prev => ({
-          ...prev,
-          followers: isFollowing
-            ? prev.followers.filter(id => id !== currentUser._id)
-            : [...(prev.followers || []), currentUser._id]
-        }));
+      if (isFollowing) {
+        await unfollowUser(userId);
       } else {
-        const errorData = await response.json();
-        alert(errorData.msg || 'Failed to update follow status');
+        await followUser(userId);
       }
+
+      // Refresh profile to get updated follower counts
+      setTimeout(() => refreshProfile(userId), 500);
     } catch (error) {
-      // console.error('Follow error:', error);
+      console.error('❌ Follow error:', error);
       alert('Failed to update follow status');
     }
-    setFollowLoading(false);
   };
 
   const openFollowersModal = (type) => {

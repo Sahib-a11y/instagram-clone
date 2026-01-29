@@ -57,7 +57,7 @@ router.get("/suggestions", requireLogin, async(req, res) => {
 
         res.json({ suggestions });
     } catch (error) {
-        // console.log("Get suggestions error:", error);
+        console.log("Get suggestions error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });

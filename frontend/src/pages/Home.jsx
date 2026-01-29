@@ -233,7 +233,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const handleLike = async () => {
     try {
       const endpoint = liked ? '/unlike' : '/like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -436,7 +436,7 @@ const Home = ({ onNavigate, onToggleFooter }) => {
   const fetchPosts = async (showRefreshLoader = false) => {
     if (showRefreshLoader) setRefreshing(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}allpost`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/allpost`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

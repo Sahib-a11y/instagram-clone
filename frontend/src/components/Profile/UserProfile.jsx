@@ -52,7 +52,7 @@ const UserProfile = ({ userId, onNavigate }) => {
       const endpoint = isFollowing ? '/unfollow' : '/follow';
       const bodyKey = isFollowing ? 'UnfollowId' : 'followId';
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

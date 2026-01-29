@@ -1,91 +1,52 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { FaSearch, FaUser, FaLock, FaUserPlus, FaSync } from 'react-icons/fa';
+import useUserSearch from '../../hooks/useUserSearch';
+import useUserSuggestions from '../../hooks/useUserSuggestions';
 
 const SearchUsers = ({ onNavigate }) => {
-  const { token } = useAuth();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // Memoize fetchSuggestions to avoid re-renders
-  const fetchSuggestions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}suggestions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+  // Use custom hooks
+  const { results, loading: searchLoading, searchUsers, clearResults } = useUserSearch();
+  const { suggestions, loading: suggestionsLoading, refreshSuggestions } = useUserSuggestions();
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data.suggestions || []);
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Suggestions error:', errorData);
-      }
-    } catch (error) {
-      console.error('❌ Fetch suggestions error:', error);
-    }
-    setLoading(false);
-  }, [token]);
+  const loading = searchLoading || suggestionsLoading;
 
-  // Fetch user suggestions on component mount
+  // Debug API URL on component mount
   useEffect(() => {
-    if (token) {
-      fetchSuggestions();
-    }
-  }, [fetchSuggestions, token]);
-
-  // Memoize searchUsers function
-  const searchUsers = useCallback(async (searchQuery) => {
-    if (searchQuery.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}search?query=${encodeURIComponent(searchQuery)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setResults(data.users || []);
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Search error:', errorData);
-        setResults([]);
-      }
-    } catch (error) {
-      console.error('❌ Search error:', error);
-      setResults([]);
-    }
-    setLoading(false);
-  }, [token]);
+    console.log('🔍 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+  }, []);
 
   // Debounced search effect
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
-      if (query) {
+      if (query.trim().length >= 2) {
         searchUsers(query);
+        setShowResults(true);
+      } else if (query.trim().length === 0) {
+        clearResults();
+        setShowResults(false);
       }
     }, 300);
 
     return () => clearTimeout(delayedSearch);
-  }, [query, searchUsers]);
+  }, [query, searchUsers, clearResults]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
     setShowResults(value.length > 0);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
+      if (query.trim().length >= 2) {
+        searchUsers(query);
+      }
+    }
   };
 
   const handleUserClick = (userId) => {
@@ -135,6 +96,7 @@ const SearchUsers = ({ onNavigate }) => {
             placeholder="Search users..."
             value={query}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             className="block w-full pl-12 pr-4 py-3 border border-gray-700 rounded-full leading-5 bg-gray-900 text-gray-100 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
           />
           {loading && (
@@ -176,7 +138,7 @@ const SearchUsers = ({ onNavigate }) => {
           <div className="px-6 py-4 text-sm font-medium text-gray-400 bg-gray-700/50 flex justify-between items-center">
             <span>Suggested for You</span>
             <button
-              onClick={fetchSuggestions}
+              onClick={refreshSuggestions}
               className="text-indigo-400 hover:text-indigo-300 transition-colors"
               aria-label="Refresh suggestions"
             >
