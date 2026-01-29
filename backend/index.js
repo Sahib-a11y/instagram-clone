@@ -20,12 +20,23 @@ const socketServer = new SocketServer(server);
 
 // ✅ Fixed CORS config for Vercel deployment
 const corsOptions = {
-    origin: [
-        'http://localhost:3000',
-        'https://instagram-clone-mmvnz20nq-gursahib-singhs-projects.vercel.app',
-        'https://instagram-clone.vercel.app',
-        process.env.FRONTEND_URL
-    ].filter(Boolean), // Remove undefined values
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'https://instagram-clone-mmvnz20nq-gursahib-singhs-projects.vercel.app',
+            'https://instagram-clone.vercel.app',
+            process.env.FRONTEND_URL
+        ].filter(Boolean);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -34,16 +45,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use((req, res, next) => {
-    if (req.method === "OPTIONS") {
-        res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-        res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin, X-Requested-With");
-        res.header("Access-Control-Allow-Credentials", "true");
-        return res.sendStatus(200);
-    }
-    next();
-});
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 app.use(
     fileUpload({
