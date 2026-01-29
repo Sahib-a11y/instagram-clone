@@ -18,25 +18,9 @@ const server = createServer(app)
 
 const socketServer = new SocketServer(server);
 
-// ✅ Fixed CORS config for Vercel deployment
+// ✅ Fixed CORS config for Vercel deployment - Allow all origins temporarily
 const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'https://instagram-clone-mmvnz20nq-gursahib-singhs-projects.vercel.app',
-            'https://instagram-clone.vercel.app',
-            process.env.FRONTEND_URL
-        ].filter(Boolean);
-
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // Allow all origins for now
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],

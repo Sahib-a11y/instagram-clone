@@ -8,7 +8,12 @@ class SocketServer {
     constructor(server) {
         this.io = new Server(server, {
             cors: {
-                origin: ["http://localhost:3000"],
+                origin: [
+                    "http://localhost:3000",
+                    "https://instagram-clone-mmvnz20nq-gursahib-singhs-projects.vercel.app",
+                    "https://instagram-clone.vercel.app",
+                    process.env.FRONTEND_URL
+                ].filter(Boolean),
                 methods: ["GET", "POST"],
                 credentials: true
             },
