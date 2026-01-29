@@ -65,7 +65,7 @@ const Profile = ({ onNavigate }) => {
     if (token) {
       fetchMyPosts();
     }
-  }, [fetchMyPosts]);
+  }, [fetchMyPosts, token]);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) {

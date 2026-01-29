@@ -62,7 +62,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     fetchAllData();
@@ -234,21 +234,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     });
   }, [user]);
 
-  const handleNewConversationFromSocket = useCallback((conversationData) => {
-    
-    const conversation = Array.isArray(conversationData) ? conversationData[0] : conversationData;
-    
-    if (conversation && conversation._id) {
-      setConversations(prev => {
-        const exists = prev.find(conv => conv._id === conversation._id);
-        if (exists) {
-          return prev;
-        }
 
-        return [{ ...conversation, unreadCount: 0 }, ...prev];
-      });
-    }
-  }, []);
 
   const markConversationAsRead = useCallback((data) => {
     console.log('ChatList: Marking conversation as read:', data);

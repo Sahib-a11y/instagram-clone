@@ -53,7 +53,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     if (conversation && inputRef.current) {
       setTimeout(() => inputRef.current.focus(), 300);
     }
-  }, [conversation?._id]);
+  }, [conversation]);
 
   const fetchMessages = useCallback(async () => {
     if (!conversation || !isMountedRef.current) return;

@@ -6,17 +6,6 @@ import { FaComments, FaTimes, FaSync } from 'react-icons/fa';
 const ChatPage = ({ onNavigate, initialConversation, onSelectConversation, onBackFromChat }) => {
   const [selectedConversation, setSelectedConversation] = useState(initialConversation || null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [newConversation, setNewConversation] = useState(null);
-
-  useEffect(() => {
-    if (initialConversation) {
-      setSelectedConversation(initialConversation);
-      setNewConversation(initialConversation);
-      if (onSelectConversation) {
-        onSelectConversation(initialConversation);
-      }
-    }
-  }, [initialConversation, onSelectConversation]);
 
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
@@ -39,8 +28,6 @@ const ChatPage = ({ onNavigate, initialConversation, onSelectConversation, onBac
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
-
-
 
   const handleCloseChat = () => {
     if (selectedConversation) {

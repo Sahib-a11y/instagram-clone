@@ -4,7 +4,7 @@ import { FaHome, FaUserCircle, FaSignOutAlt, FaComments, FaSearch } from 'react-
 import SearchUsers from '../common/SearchUsers';
 
 const Layout = ({ children, onNavigate, activeTab, hideNav = false }) => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
 
   const handleLogout = () => {
