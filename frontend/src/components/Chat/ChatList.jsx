@@ -68,14 +68,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     fetchAllData();
   }, [fetchAllData, refreshTrigger]);
 
-  useEffect(() => {
-    if (onNewConversation) {
-      setConversations(prev => {
-        const exists = prev.find(conv => conv._id === onNewConversation._id);
-        return exists ? prev : [{ ...onNewConversation, unreadCount: 0 }, ...prev];
-      });
-    }
-  }, [onNewConversation]);
+
 
   const acceptRequest = async (conversationId) => {
     try {

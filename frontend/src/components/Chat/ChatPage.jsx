@@ -81,7 +81,6 @@ const ChatPage = ({ onNavigate, initialConversation, onSelectConversation, onBac
             <ChatList
               onSelectConversation={handleSelectConversation}
               refreshTrigger={refreshTrigger}
-              onNewConversation={() => {}}
             />
           </div>
         </div>
