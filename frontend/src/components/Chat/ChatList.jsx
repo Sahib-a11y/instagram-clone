@@ -15,6 +15,16 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
   const [activeTab, setActiveTab] = useState('chats');
   const [showSearch, setShowSearch] = useState(false);
 
+  const handleTypingIndicator = useCallback((data) => {
+    // Handle typing indicator logic here if needed
+    console.log('Typing indicator:', data);
+  }, []);
+
+  const handleStopTypingIndicator = useCallback((data) => {
+    // Handle stop typing indicator logic here if needed
+    console.log('Stop typing indicator:', data);
+  }, []);
+
   const fetchConversations = async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/conversations`, {
