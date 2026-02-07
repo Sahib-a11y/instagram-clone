@@ -14,6 +14,8 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const [newReply, setNewReply] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
   const [showReplies, setShowReplies] = useState({});
+  const [commentLikes, setCommentLikes] = useState({});
+  const [replyLikes, setReplyLikes] = useState({});
 
   useEffect(() => {
     if (post.like) {
@@ -22,6 +24,19 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     }
     if (post.Comment) {
       setComments(post.Comment);
+      // Initialize comment likes state
+      const initialCommentLikes = {};
+      const initialReplyLikes = {};
+      post.Comment.forEach(comment => {
+        initialCommentLikes[comment._id] = comment.like?.includes(user?._id) || false;
+        if (comment.replies) {
+          comment.replies.forEach(reply => {
+            initialReplyLikes[reply._id] = reply.like?.includes(user?._id) || false;
+          });
+        }
+      });
+      setCommentLikes(initialCommentLikes);
+      setReplyLikes(initialReplyLikes);
     }
   }, [post, user]);
 
@@ -93,7 +108,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
   const handleCommentLike = async (commentId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/like/${post._id}/${commentId}`, {
+      const isLiked = commentLikes[commentId];
+      const endpoint = isLiked ? 'unlike' : 'like';
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${endpoint}/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -106,6 +123,11 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         setComments(updatedComments);
         // Update parent post data
         onPostUpdate(post._id, { Comment: updatedComments });
+        // Update local like state
+        setCommentLikes(prev => ({
+          ...prev,
+          [commentId]: !isLiked
+        }));
       } else {
         const errorData = await response.json();
         console.error('Comment like error:', errorData);
@@ -117,7 +139,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
   const handleReplyLike = async (commentId, replyId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/like/${post._id}/${commentId}/${replyId}`, {
+      const isLiked = replyLikes[replyId];
+      const endpoint = isLiked ? 'unlike' : 'like';
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${endpoint}/${post._id}/${commentId}/${replyId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -130,6 +154,11 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         setComments(updatedComments);
         // Update parent post data
         onPostUpdate(post._id, { Comment: updatedComments });
+        // Update local like state
+        setReplyLikes(prev => ({
+          ...prev,
+          [replyId]: !isLiked
+        }));
       } else {
         const errorData = await response.json();
         console.error('Reply like error:', errorData);
@@ -438,7 +467,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                       <div className="flex items-center space-x-4 mt-2">
                         <button
                           onClick={() => handleCommentLike(comment._id)}
-                          className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                          className={`text-xs transition-colors ${
+                            commentLikes[comment._id] ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                          }`}
                         >
                           Like
                         </button>
@@ -522,7 +553,9 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                               <div className="flex items-center space-x-2 mt-1">
                                 <button
                                   onClick={() => handleReplyLike(comment._id, reply._id)}
-                                  className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                                  className={`text-xs transition-colors ${
+                                    replyLikes[reply._id] ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                                  }`}
                                 >
                                   Like
                                 </button>
