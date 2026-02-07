@@ -116,9 +116,11 @@ import getApiUrl from '../utils/api';
             }
           } catch (error) {
             console.error('Load user error:', error);
-            dispatch({ 
+            const isNetworkError = error instanceof TypeError && error.message === 'Failed to fetch';
+            const message = isNetworkError ? 'Server unreachable or CORS error' : 'Failed to load user';
+            dispatch({
               type: AUTH_ACTIONS.AUTH_ERROR,
-              payload: 'Failed to load user'
+              payload: message
             });
           }
         } else {
@@ -174,7 +176,7 @@ import getApiUrl from '../utils/api';
 
     const register = async (name, email, password) => {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
-      
+
       try {
         const response = await fetch(getApiUrl('/signup'), {
           method: 'POST',
@@ -204,11 +206,13 @@ import getApiUrl from '../utils/api';
         }
       } catch (error) {
         console.error('Register error:', error);
+        const isNetworkError = error instanceof TypeError && error.message === 'Failed to fetch';
+        const message = isNetworkError ? 'Server unreachable or CORS error' : 'Network error occurred';
         dispatch({
           type: AUTH_ACTIONS.REGISTER_FAIL,
-          payload: 'Network error occurred'
+          payload: message
         });
-        return { success: false, error: 'Network error occurred' };
+        return { success: false, error: message };
       }
     };
 

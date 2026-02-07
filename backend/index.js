@@ -19,7 +19,9 @@ const app = express()
 
 // ✅ Fixed CORS config for Vercel deployment - Allow frontend origin
 const corsOptions = {
-    origin: 'https://instagram-clone-phi-dusky.vercel.app', // Allow specific frontend origin
+    origin: process.env.NODE_ENV === 'production'
+        ? 'https://instagram-clone-phi-dusky.vercel.app'
+        : 'http://localhost:3000', // Allow localhost for development
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -80,6 +82,14 @@ app.use((err, req, res, next) => {
 
 // Connect to database
 DBConnect()
+
+// For local development, start the server
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
 // Vercel serverless functions don't need explicit server.listen()
 // The app is exported and Vercel handles the server setup
