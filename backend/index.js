@@ -17,9 +17,9 @@ import chatrouter from './routes/chat.js';
 
 const app = express()
 
-// ✅ Fixed CORS config for Vercel deployment - Allow specific origins
+// ✅ Fixed CORS config for Vercel deployment - Allow frontend origin
 const corsOptions = {
-    origin: ['https://instagram-clone-phi-dusky.vercel.app', 'http://localhost:3000'], // Allow frontend and local dev
+    origin: 'https://instagram-clone-phi-dusky.vercel.app', // Allow specific frontend origin
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
