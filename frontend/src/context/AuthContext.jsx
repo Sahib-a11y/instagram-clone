@@ -1,4 +1,5 @@
-  import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import getApiUrl from '../utils/api';
 
   const initialState = {
     user: null,
@@ -90,14 +91,14 @@
   export const AuthProvider = ({ children }) => {
     const [state, dispatch] = useReducer(authReducer, initialState);
 
-    const API_BASE = process.env.REACT_APP_API_URL?.replace(/\/+$/, "") + "/"
+  // API_BASE is now handled by getApiUrl utility
     useEffect(() => {
       const loadUser = async () => {
         const token = localStorage.getItem('token');
         
         if (token) {
           try {
-        const response = await fetch(`${API_BASE}profile`, {
+        const response = await fetch(getApiUrl('/profile'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -126,7 +127,7 @@
       };
 
       loadUser();
-    }, [API_BASE]);
+    }, []);
 
     const login = async (email, password) => {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
@@ -142,7 +143,7 @@
         });
 
         const data = await response.json();
-        console.log('API URL:',`${process.env.REACT_APP_API_URL}signin`);
+        console.log('API URL:', getApiUrl('/signin'));
 
         if (response.ok) {
           dispatch({
@@ -175,7 +176,7 @@
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       try {
-        const response = await fetch(`${API_BASE}signup`, {
+        const response = await fetch(getApiUrl('/signup'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

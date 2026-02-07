@@ -5,6 +5,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
 import ChatSearch from './ChatSearch';
 import { FaComment, FaUserPlus, FaCheckCircle, FaSearch, FaPlus } from 'react-icons/fa';
+import getApiUrl from '../../utils/api';
 
 const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) => {
   const { user, token } = useAuth();
@@ -84,8 +85,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const acceptRequest = async (conversationId) => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL.replace(/\/$/, '');
-      const response = await fetch(`${apiUrl}/accept-request/${conversationId}`, {
+      const response = await fetch(getApiUrl(`/accept-request/${conversationId}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -157,7 +157,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
           : conv
       ));
       try {
-        await fetch(`${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/mark-read`, {
+        await fetch(getApiUrl(`/conversation/${conversation._id}/mark-read`), {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`
