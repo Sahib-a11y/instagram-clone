@@ -116,7 +116,8 @@ const Login = ({ onNavigate }) => {
                   className={`w-full bg-gray-700 text-gray-100 pl-10 pr-3 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                     formErrors.email ? 'border-red-500' : ''
                   }`}
-                  placeholder="name@example.com"
+                
+                  placeholder="Username or Email"
                 />
               </div>
               {formErrors.email && (
@@ -141,7 +142,7 @@ const Login = ({ onNavigate }) => {
                   className={`w-full bg-gray-700 text-gray-100 pl-10 pr-10 py-3 border border-gray-600 rounded-lg shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                     formErrors.password ? 'border-red-500' : ''
                   }`}
-                  placeholder="••••••••"
+                  placeholder="Password"
                 />
                 <button
                   type="button"
