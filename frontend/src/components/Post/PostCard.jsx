@@ -93,7 +93,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
   const handleCommentLike = async (commentId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/like/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/like/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -119,7 +119,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${post._id}${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -147,7 +147,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setReplyLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
