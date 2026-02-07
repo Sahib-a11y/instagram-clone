@@ -54,7 +54,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
