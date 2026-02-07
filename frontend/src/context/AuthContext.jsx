@@ -90,7 +90,7 @@
   export const AuthProvider = ({ children }) => {
     const [state, dispatch] = useReducer(authReducer, initialState);
 
-    const API_BASE = process.env.REACT_APP_API_URL?.replace(/\/+$/,"")
+    const API_BASE = process.env.REACT_APP_API_URL?.replace(/\/+$/, "") + "/"
     useEffect(() => {
       const loadUser = async () => {
         const token = localStorage.getItem('token');
@@ -132,8 +132,8 @@
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       try {
-        const response = await fetch(`${API_BASE}/signin`,{
-          
+        const response = await fetch(`${API_BASE}signin`,{
+
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
