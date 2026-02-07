@@ -27,8 +27,8 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
   const handleLike = async () => {
     try {
-      const endpoint = liked ? '/unlike' : '/like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
+      const endpoint = liked ? 'unlike' : 'like';
+      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

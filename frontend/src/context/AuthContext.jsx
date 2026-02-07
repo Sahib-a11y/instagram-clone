@@ -97,12 +97,12 @@
         
         if (token) {
           try {
-            const response = await fetch(`${API_BASE}/profile`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
+        const response = await fetch(`${API_BASE}profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
             if (response.ok) {
               const userData = await response.json();
@@ -142,7 +142,7 @@
         });
 
         const data = await response.json();
-        console.log('API URL:',`${process.env.REACT_APP_API_URL}/signin`);
+        console.log('API URL:',`${process.env.REACT_APP_API_URL}signin`);
 
         if (response.ok) {
           dispatch({
@@ -175,7 +175,7 @@
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
       try {
-        const response = await fetch(`${API_BASE}/signup`, {
+        const response = await fetch(`${API_BASE}signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

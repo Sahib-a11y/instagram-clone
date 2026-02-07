@@ -60,7 +60,7 @@ const CreatePost = ({ onPostCreated }) => {
     uploadFormData.append('image', selectedFile);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/createPost`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}createPost`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
