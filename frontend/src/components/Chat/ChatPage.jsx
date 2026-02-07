@@ -78,10 +78,9 @@ const ChatPage = ({ onNavigate, initialConversation, onSelectConversation, onBac
 
         <div className={`${!selectedConversation ? 'flex' : 'hidden'} lg:flex lg:w-96 border-r border-gray-200`}>
           <div className="flex-1 flex flex-col">
-            <ChatList 
-              onSelectConversation={handleSelectConversation} 
+            <ChatList
+              onSelectConversation={handleSelectConversation}
               refreshTrigger={refreshTrigger}
-              onNewConversation={newConversation}
             />
           </div>
         </div>
