@@ -119,7 +119,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${post._id}${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${post._id}/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
