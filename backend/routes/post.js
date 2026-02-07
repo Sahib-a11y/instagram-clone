@@ -329,6 +329,82 @@ router.put("/comment/reply/:postId/:commentId", requireLogin, async(req, res) =>
     }
 })
 
+router.put("/comment/reply/like/:postId/:commentId/:replyId", requireLogin, async(req, res) => {
+    try {
+        const { postId, commentId, replyId } = req.params
+
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({error: "Post not found"})
+        }
+
+        const comment = post.Comment.id(commentId)
+        if (!comment) {
+            return res.status(404).json({error: "Comment not found"})
+        }
+
+        const reply = comment.replies.id(replyId)
+        if (!reply) {
+            return res.status(404).json({error: "Reply not found"})
+        }
+
+        if (reply.like.includes(req.Userdata._id)) {
+            return res.status(422).json({error: "Reply already liked"})
+        }
+
+        reply.like.push(req.Userdata._id)
+        await post.save()
+
+        const result = await Post.findById(postId)
+            .populate('postedBy', 'name pic email')
+            .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
+
+        return res.status(200).json({msg: "Reply liked successfully", result})
+    } catch (error) {
+        // console.log("Reply like error:", error)
+        return res.status(500).json({error: "Internal server error"})
+    }
+})
+
+router.delete("/comment/reply/:postId/:commentId/:replyId", requireLogin, async(req, res) => {
+    try {
+        const { postId, commentId, replyId } = req.params
+
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({error: "Post not found"})
+        }
+
+        const comment = post.Comment.id(commentId)
+        if (!comment) {
+            return res.status(404).json({error: "Comment not found"})
+        }
+
+        const reply = comment.replies.id(replyId)
+        if (!reply) {
+            return res.status(404).json({error: "Reply not found"})
+        }
+
+        if (reply.postedBy.toString() !== req.Userdata._id.toString()) {
+            return res.status(403).json({error: "You are not authorized to delete this reply"})
+        }
+
+        comment.replies.pull(replyId)
+        await post.save()
+
+        const result = await Post.findById(postId)
+            .populate('postedBy', 'name pic email')
+            .populate('Comment.postedBy', 'name pic email')
+            .populate('Comment.replies.postedBy', 'name pic email')
+
+        return res.status(200).json({msg: "Reply deleted successfully", result})
+    } catch (error) {
+        // console.log("Delete reply error:", error)
+        return res.status(500).json({error: "Internal server error"})
+    }
+})
+
 router.delete("/comment/:postId/:commentId", requireLogin, async(req, res) => {
     try {
         const { postId, commentId } = req.params

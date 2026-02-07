@@ -115,6 +115,30 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     }
   };
 
+  const handleReplyLike = async (commentId, replyId) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/like/${post._id}/${commentId}/${replyId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        // Update parent post data
+        onPostUpdate(post._id, { Comment: updatedComments });
+      } else {
+        const errorData = await response.json();
+        console.error('Reply like error:', errorData);
+      }
+    } catch (error) {
+      console.error('Reply like error:', error);
+    }
+  };
+
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
@@ -139,6 +163,33 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     } catch (error) {
       console.error('Delete comment error:', error);
       alert('Failed to delete comment');
+    }
+  };
+
+  const handleDeleteReply = async (commentId, replyId) => {
+    if (!window.confirm('Are you sure you want to delete this reply?')) return;
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${post._id}/${commentId}/${replyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedComments = data.result.Comment || [];
+        setComments(updatedComments);
+        onPostUpdate(post._id, { Comment: updatedComments });
+      } else {
+        const errorData = await response.json();
+        console.error('Delete reply error:', errorData);
+        alert(errorData.error || 'Failed to delete reply');
+      }
+    } catch (error) {
+      console.error('Delete reply error:', error);
+      alert('Failed to delete reply');
     }
   };
 
@@ -470,14 +521,14 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                               </p>
                               <div className="flex items-center space-x-2 mt-1">
                                 <button
-                                  onClick={() => handleCommentLike(reply._id)}
+                                  onClick={() => handleReplyLike(comment._id, reply._id)}
                                   className="text-xs text-gray-500 hover:text-red-500 transition-colors"
                                 >
                                   Like
                                 </button>
                                 {reply.postedBy._id === user._id && (
                                   <button
-                                    onClick={() => handleDeleteComment(reply._id)}
+                                    onClick={() => handleDeleteReply(comment._id, reply._id)}
                                     className="text-xs text-gray-500 hover:text-red-500 transition-colors"
                                   >
                                     Delete
