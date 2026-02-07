@@ -131,9 +131,9 @@ import getApiUrl from '../utils/api';
 
     const login = async (email, password) => {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
-      
+
       try {
-        const response = await fetch(`${API_BASE}signin`,{
+        const response = await fetch(getApiUrl('/signin'),{
 
           method: 'POST',
           headers: {
