@@ -28,8 +28,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const fetchConversations = useCallback(async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL.replace(/\/$/, '');
-      const response = await fetch(`${apiUrl}/conversations`, {
+      const response = await fetch(getApiUrl('/conversations'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -37,7 +36,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
       if (response.ok) {
         const data = await response.json();
-        
+
         const conversationsWithUnread = data.conversations?.map(conv => ({
           ...conv,
           unreadCount: conv.unreadCount || 0 // Ensure unreadCount exists
@@ -51,8 +50,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
   const fetchMessageRequests = useCallback(async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL.replace(/\/$/, '');
-      const response = await fetch(`${apiUrl}/message-requests`, {
+      const response = await fetch(getApiUrl('/message-requests'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
