@@ -17,11 +17,20 @@ import chatrouter from './routes/chat.js';
 
 const app = express()
 
-// ✅ Fixed CORS config for Vercel deployment - Allow frontend origin
+// Updated CORS configuration to allow both localhost and production URLs
+const allowedOrigins = [
+    'https://instagram-clone-phi-dusky.vercel.app', // Production URL
+    'http://localhost:3000' // Development URL
+];
+
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://instagram-clone-phi-dusky.vercel.app'
-        : 'http://localhost:3000', // Allow localhost for development
+    origin: (origin, callback) => {
+        if (allowedOrigins.includes(origin) || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -32,6 +41,18 @@ app.use(cors(corsOptions));
 
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
+
+// Additional CORS headers middleware for compatibility
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    next();
+});
 
 app.use(
     fileUpload({

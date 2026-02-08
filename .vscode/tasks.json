@@ -1,0 +1,77 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Test Backend Endpoints",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-X",
+				"POST",
+				"http://localhost:5000/message",
+				"-H",
+				"Content-Type: application/json",
+				"-H",
+				"Authorization: Bearer <your_token_here>",
+				"-d",
+				"{\"conversationId\":\"<conversation_id>\",\"content\":\"Test message\"}"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Backend Endpoints",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-X",
+				"POST",
+				"http://localhost:5000/message",
+				"-H",
+				"Content-Type: application/json",
+				"-H",
+				"Authorization: Bearer <your_token_here>",
+				"-d",
+				"{\"conversationId\":\"<conversation_id>\",\"content\":\"Test message\"}"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Backend Endpoints",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-X",
+				"POST",
+				"http://localhost:5000/message",
+				"-H",
+				"Content-Type: application/json",
+				"-H",
+				"Authorization: Bearer <your_token_here>",
+				"-d",
+				"{\\\"conversationId\\\":\\\"<conversation_id>\\\",\\\"content\\\":\\\"Test message\\\"}"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Test Conversations Endpoint",
+			"type": "shell",
+			"command": "curl",
+			"args": [
+				"-X",
+				"GET",
+				"http://localhost:5000/conversations",
+				"-H",
+				"Authorization: Bearer <your_token_here>"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

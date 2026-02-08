@@ -26,7 +26,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     console.log('Stop typing indicator:', data);
   }, []);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL.replace(/\/$/, '');
       const response = await fetch(`${apiUrl}/conversations`, {
@@ -47,9 +47,9 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     } catch (error) {
       console.error('Fetch conversations error:', error);
     }
-  };
+  }, [token]);
 
-  const fetchMessageRequests = async () => {
+  const fetchMessageRequests = useCallback(async () => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL.replace(/\/$/, '');
       const response = await fetch(`${apiUrl}/message-requests`, {
@@ -65,7 +65,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     } catch (error) {
       console.error('Fetch message requests error:', error);
     }
-  };
+  }, [token]);
 
   const fetchAllData = useCallback(async () => {
     setLoading(true);
@@ -75,11 +75,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
       console.error('Error fetching data:', error);
     }
     setLoading(false);
-  }, [token]);
-
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData, refreshTrigger]);
+  }, [fetchConversations, fetchMessageRequests]);
 
 
 
@@ -262,6 +258,10 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
  
 
 
+
+  useEffect(() => {
+    fetchAllData();
+  }, [refreshTrigger, fetchAllData]);
 
   useEffect(() => {
     if (!isConnected()) {
