@@ -135,7 +135,7 @@ import getApiUrl from '../utils/api';
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
 
       try {
-        const response = await fetch(getApiUrl('/signin'),{
+        const response = await fetch(getApiUrl('login'),{
 
           method: 'POST',
           headers: {
@@ -145,7 +145,6 @@ import getApiUrl from '../utils/api';
         });
 
         const data = await response.json();
-        console.log('API URL:', getApiUrl('/signin'));
 
         if (response.ok) {
           dispatch({
