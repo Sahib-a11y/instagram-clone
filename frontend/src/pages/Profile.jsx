@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import TimeAgo from '../components/common/TimeAgo';
 import FollowersModal from '../components/common/FollowersModal';
+import CreatePostModal from '../components/Post/CreatePostModal';
+import {
+  FaTh,
+  FaVideo,
+  FaUserTag,
+  FaPlus,
+  FaChevronDown,
+  FaLock,
+  FaBars,
+  FaHeart,
+  FaComment
+} from 'react-icons/fa';
 
 const Profile = ({ onNavigate }) => {
   const { user, token, updateUser } = useAuth();
@@ -20,7 +31,10 @@ const Profile = ({ onNavigate }) => {
   });
   const [uploading, setUploading] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'followers' or 'following'
+  const [modalType, setModalType] = useState('');
+  const [activeTab, setActiveTab] = useState('grid'); // 'grid', 'reels', 'tagged'
+  const [highlights, setHighlights] = useState([]);
+  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
 
   const fetchMyPosts = useCallback(async () => {
     try {
@@ -47,6 +61,25 @@ const Profile = ({ onNavigate }) => {
     setLoading(false);
   }, [token]);
 
+  const fetchHighlights = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/story/highlights`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHighlights(data || []);
+      } else {
+        console.error('Fetch highlights error:', await response.json());
+      }
+    } catch (error) {
+      console.error('Error fetching highlights:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (user) {
       setStats(prev => ({
@@ -64,8 +97,9 @@ const Profile = ({ onNavigate }) => {
   useEffect(() => {
     if (token) {
       fetchMyPosts();
+      fetchHighlights();
     }
-  }, [fetchMyPosts, token]);
+  }, [fetchMyPosts, fetchHighlights, token]);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) {
@@ -115,7 +149,6 @@ const Profile = ({ onNavigate }) => {
     formData.append('image', file);
 
     try {
-      console.log()
       const response = await fetch(`${process.env.REACT_APP_API_URL}/upload-profile-pic`, {
         method: 'POST',
         headers: {
@@ -210,296 +243,342 @@ const Profile = ({ onNavigate }) => {
     setShowFollowersModal(true);
   };
 
-  const handleEditPost = (postId) => {
-    
-    console.log('Edit post:', postId);
-    
-  };
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8">
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      
-      <div className="bg-white rounded-lg shadow-md p-8 mb-6">
-        <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-          
-          <div className="flex-shrink-0 relative">
-            <img
-              src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-              alt="Profile"
-              className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md"
-            />
-            <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition-colors shadow-lg">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-            {uploading && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                <LoadingSpinner size="sm" />
-              </div>
-            )}
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FaLock className="w-4 h-4 text-gray-400" />
+            <button className="flex items-center space-x-1 text-white font-semibold">
+              <span>{user?.name || 'User'}</span>
+              <FaChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
           </div>
-
-          
-          <div className="flex-1 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                      className="text-2xl font-bold text-gray-900 bg-gray-50 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Your name"
-                    />
-                    <p className="text-gray-600">{user?.email}</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h1 className="text-2xl font-bold text-gray-900">
-                        {user?.name}
-                      </h1>
-                      {user?.isPrivate && (
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                      )}
-                    </div>
-                    <p className="text-gray-600 mb-4">{user?.email}</p>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex flex-col space-y-3">
-                {isEditing ? (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={handleSaveEdit}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditForm({
-                          name: user?.name || '',
-                          email: user?.email || ''
-                        });
-                      }}
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      <span>Edit Profile</span>
-                    </button>
-                    <button
-                      onClick={handlePrivacyToggle}
-                      className={`px-6 py-2 rounded-md font-medium transition-colors flex items-center space-x-2 ${
-                        user?.isPrivate 
-                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                          : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d={user?.isPrivate 
-                            ? "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                            : "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          } 
-                        />
-                      </svg>
-                      <span>{user?.isPrivate ? 'Make Public' : 'Make Private'}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            
-            <div className="flex justify-center md:justify-start space-x-8 mb-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">{stats.postsCount}</div>
-                <div className="text-sm text-gray-600">Posts</div>
-              </div>
-              <div 
-                className="text-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
-                onClick={() => openFollowersModal('followers')}
-              >
-                <div className="text-2xl font-bold text-gray-900">{stats.followersCount}</div>
-                <div className="text-sm text-gray-600">Followers</div>
-              </div>
-              <div 
-                className="text-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors"
-                onClick={() => openFollowersModal('following')}
-              >
-                <div className="text-2xl font-bold text-gray-900">{stats.followingCount}</div>
-                <div className="text-sm text-gray-600">Following</div>
-              </div>
-            </div>
-
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 text-sm mb-3">
-                Welcome to my profile! I love sharing moments and connecting with friends.
-              </p>
-              <div className="flex items-center justify-between text-gray-500 text-xs">
-                <div className="flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0V7a2 2 0 012-2h4a2 2 0 012 2v0m-6 0V7" />
-                  </svg>
-                  Joined <TimeAgo date={user?.createdAt} />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    user?.isPrivate 
-                      ? 'bg-yellow-100 text-yellow-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {user?.isPrivate ? 'Private Account' : 'Public Account'}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center space-x-4">
+            <button className="w-8 h-8 bg-gray-700 rounded-md flex items-center justify-center hover:bg-gray-600">
+              <FaPlus className="w-5 h-5 text-white" />
+            </button>
+            <button className="w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded-md">
+              <FaBars className="w-5 h-5 text-white" />
+            </button>
           </div>
         </div>
       </div>
 
-      
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">My Posts</h2>
+      <div className="max-w-lg mx-auto px-4 py-6">
+        {/* Profile Info */}
+        <div className="mb-6">
+          <div className="flex items-start justify-between mb-4">
+            {/* Profile Picture */}
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-gray-600">
+                {user?.pic ? (
+                  <img
+                    src={user.pic}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                  <LoadingSpinner size="sm" />
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="flex space-x-6">
+              <div className="text-center">
+                <div className="text-lg font-semibold">{stats.postsCount}</div>
+                <div className="text-xs text-gray-400">Posts</div>
+              </div>
+              <button 
+                className="text-center hover:opacity-70"
+                onClick={() => openFollowersModal('followers')}
+              >
+                <div className="text-lg font-semibold">{stats.followersCount}</div>
+                <div className="text-xs text-gray-400">Followers</div>
+              </button>
+              <button 
+                className="text-center hover:opacity-70"
+                onClick={() => openFollowersModal('following')}
+              >
+                <div className="text-lg font-semibold">{stats.followingCount}</div>
+                <div className="text-xs text-gray-400">Following</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Username & Bio */}
+          {isEditing ? (
+            <div className="space-y-3 mb-4">
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white focus:outline-none focus:border-gray-600"
+                placeholder="Your name"
+              />
+              <p className="text-sm text-gray-400">{user?.email}</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-1">
+                <h2 className="font-semibold text-sm">{user?.name}</h2>
+              </div>
+              <div className="mb-3">
+                <p className="text-xs text-gray-400">
+                  Welcome to my profile! I love sharing moments and connecting with friends.
+                </p>
+              </div>
+              {user?.isPrivate && (
+                <div className="flex items-center space-x-1 mb-3">
+                  <FaLock className="w-3 h-3 text-gray-400" />
+                  <span className="text-xs text-gray-400">Private Account</span>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Action Buttons */}
+          {isEditing ? (
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-sm font-semibold"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditForm({
+                    name: user?.name || '',
+                    email: user?.email || ''
+                  });
+                }}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-md text-sm font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md text-sm font-semibold"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={handlePrivacyToggle}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-md text-sm font-semibold"
+              >
+                {user?.isPrivate ? 'Make Public' : 'Make Private'}
+              </button>
+              <label className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-md flex items-center justify-center cursor-pointer">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Highlights */}
+        <div className="mb-6 pb-4 border-b border-gray-800">
+          <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+            {/* Add Highlight */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <button
+                onClick={() => onNavigate('createStory')}
+                className="w-16 h-16 rounded-full border-2 border-gray-700 flex items-center justify-center hover:border-gray-600"
+              >
+                <FaPlus className="w-6 h-6 text-gray-400" />
+              </button>
+              <span className="text-xs text-gray-400 mt-1">New</span>
+            </div>
+            {/* Highlights */}
+            {highlights.map((highlight) => (
+              <div key={highlight._id} className="flex flex-col items-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-indigo-500">
+                  {highlight.type === 'image' ? (
+                    <img
+                      src={highlight.mediaUrl}
+                      alt="Highlight"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={highlight.mediaUrl}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <span className="text-xs text-gray-400 mt-1">Highlight</span>
+              </div>
+            ))}
+            {/* Placeholder if no highlights */}
+            {highlights.length === 0 && (
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-xs text-gray-400 mt-1">No highlights</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-800 mb-4">
           <button
-            onClick={() => onNavigate('home')}
-            className="text-blue-600 hover:text-blue-500 text-sm font-medium flex items-center space-x-1"
+            onClick={() => setActiveTab('grid')}
+            className={`flex-1 py-3 flex items-center justify-center ${
+              activeTab === 'grid' 
+                ? 'text-white border-b-2 border-white' 
+                : 'text-gray-500'
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Create New Post</span>
+            <FaTh className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setActiveTab('reels')}
+            className={`flex-1 py-3 flex items-center justify-center ${
+              activeTab === 'reels' 
+                ? 'text-white border-b-2 border-white' 
+                : 'text-gray-500'
+            }`}
+          >
+            <FaVideo className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setActiveTab('tagged')}
+            className={`flex-1 py-3 flex items-center justify-center ${
+              activeTab === 'tagged' 
+                ? 'text-white border-b-2 border-white' 
+                : 'text-gray-500'
+            }`}
+          >
+            <FaUserTag className="w-6 h-6" />
           </button>
         </div>
 
-        {posts.length === 0 ? (
-          <div className="text-center py-16">
-            <svg className="mx-auto w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
-            <p className="text-gray-500 mb-6">Share your first moment with the community!</p>
-            <button
-              onClick={() => onNavigate('home')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
-            >
-              Create your first post
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            {posts.map((post) => (
-              <div key={post._id} className="group relative bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200">
-                <div className="aspect-square bg-gray-100">
-                  {post.photo ? (
-                    <img
-                      src={post.photo}
-                      alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                      <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end">
-                  <div className="text-white p-4 w-full">
-                    <h3 className="font-semibold mb-1 truncate">{post.title}</h3>
-                    <p className="text-sm text-gray-200 mb-2 line-clamp-2">
-                      {post.body}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-300">
-                      <div className="flex items-center space-x-4">
-                        <span className="flex items-center">
-                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                          </svg>
-                          {post.like?.length || 0}
-                        </span>
-                        <span className="flex items-center">
-                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                          </svg>
-                          {post.Comment?.length || 0}
-                        </span>
-                      </div>
-                      <span><TimeAgo date={post.createdAt} /></span>
-                    </div>
-                  </div>
-                </div>
-
-                
-                <button
-                  onClick={() => handleDeletePost(post._id)}
-                  className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
-                  title="Delete post"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        {/* Posts Grid */}
+        {activeTab === 'grid' && (
+          <>
+            {posts.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full border-2 border-gray-700 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                </button>
-
-                
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Posts Yet</h3>
+                <p className="text-gray-400 text-sm mb-6">Share your first photo or video</p>
                 <button
-                  onClick={() => handleEditPost(post._id)}
-                  className="absolute top-3 right-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
-                  title="Edit post"
+                  onClick={() => setShowCreatePostModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-semibold"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+                  Create Post
                 </button>
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {posts.map((post) => (
+                  <div 
+                    key={post._id} 
+                    className="relative aspect-square bg-gray-800 group cursor-pointer"
+                  >
+                    {post.photo ? (
+                      <img
+                        src={post.photo}
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                        <svg className="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="flex items-center space-x-6 text-white">
+                        <div className="flex items-center space-x-2">
+                          <FaHeart className="w-5 h-5" />
+                          <span className="font-semibold">{post.like?.length || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <FaComment className="w-5 h-5" />
+                          <span className="font-semibold">{post.Comment?.length || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePost(post._id);
+                      }}
+                      className="absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'reels' && (
+          <div className="text-center py-16">
+            <FaVideo className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <h3 className="text-xl font-semibold mb-2">No Reels Yet</h3>
+            <p className="text-gray-400 text-sm">Share your first reel</p>
+          </div>
+        )}
+
+        {activeTab === 'tagged' && (
+          <div className="text-center py-16">
+            <FaUserTag className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <h3 className="text-xl font-semibold mb-2">No Tagged Posts</h3>
+            <p className="text-gray-400 text-sm">You haven't been tagged in any posts yet</p>
           </div>
         )}
       </div>
 
-      
+      {/* Followers Modal */}
       <FollowersModal
         isOpen={showFollowersModal}
         onClose={() => setShowFollowersModal(false)}
@@ -507,6 +586,26 @@ const Profile = ({ onNavigate }) => {
         type={modalType}
         onNavigate={onNavigate}
       />
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={showCreatePostModal}
+        onClose={() => setShowCreatePostModal(false)}
+        onPostCreated={() => {
+          fetchMyPosts();
+          setShowCreatePostModal(false);
+        }}
+      />
+
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

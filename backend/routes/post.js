@@ -121,13 +121,42 @@ router.post("/createPost", requireLogin, async(req, res) => {
 
 router.post("/allpost", requireLogin, async(req, res) => {
     try {
-        const posts = await Post.find()
-            .populate('postedBy', 'name pic email')
+        const currentUserId = req.Userdata._id;
+
+        // Get all users to check their privacy settings
+        const allUsers = await User.find({}, 'isPrivate followers').lean();
+
+        // Create a map for quick privacy checks
+        const userPrivacyMap = {};
+        allUsers.forEach(user => {
+            userPrivacyMap[user._id.toString()] = {
+                isPrivate: user.isPrivate,
+                followers: user.followers.map(f => f.toString())
+            };
+        });
+
+        // Find posts from users that current user can view
+        const allPosts = await Post.find()
+            .populate('postedBy', 'name pic email isPrivate')
             .populate('Comment.postedBy', 'name pic email')
             .populate('Comment.replies.postedBy', 'name pic email')
-            .sort({createdAt: -1})
+            .sort({createdAt: -1});
 
-        return res.status(200).json({posts})
+        // Filter posts based on privacy settings
+        const visiblePosts = allPosts.filter(post => {
+            const postUserId = post.postedBy._id.toString();
+            const userPrivacy = userPrivacyMap[postUserId];
+
+            // Show post if:
+            // 1. Account is public, OR
+            // 2. Current user is following the account, OR
+            // 3. Current user owns the post
+            return !userPrivacy.isPrivate ||
+                   userPrivacy.followers.includes(currentUserId.toString()) ||
+                   postUserId === currentUserId.toString();
+        });
+
+        return res.status(200).json({posts: visiblePosts})
     } catch (error) {
         // console.log("Get all posts error:", error)
         return res.status(500).json({error: "Internal server error"})
@@ -192,6 +221,9 @@ router.put('/like', requireLogin, async(req, res) => {
           .populate('Comment.postedBy', 'name pic email')
           .populate('Comment.replies.postedBy', 'name pic email')
 
+        // Create like notification
+        await createPostLikeNotification(req.Userdata._id, post.postedBy._id, postId);
+
         return res.status(200).json({msg: "Post liked successfully", result})
     } catch (error) {
         // console.log("Like error:", error)
@@ -248,6 +280,9 @@ router.put("/comment", requireLogin, async(req, res) => {
         }).populate('postedBy', 'name pic email')
           .populate('Comment.postedBy', 'name pic email')
           .populate('Comment.replies.postedBy', 'name pic email')
+
+        // Create comment notification
+        await createPostCommentNotification(req.Userdata._id, result.postedBy._id, req.body.postId);
 
         return res.status(200).json({msg: "Comment added successfully", result})
     } catch (error) {

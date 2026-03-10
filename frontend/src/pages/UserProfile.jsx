@@ -28,15 +28,24 @@ const UserProfile = ({ userId, onNavigate }) => {
     try {
       if (isFollowing) {
         await unfollowUser(userId);
+        // Refresh profile to get updated follower counts
+        setTimeout(() => refreshProfile(userId), 500);
       } else {
-        await followUser(userId);
-      }
+        const result = await followUser(userId);
 
-      // Refresh profile to get updated follower counts
-      setTimeout(() => refreshProfile(userId), 500);
+        if (result.success) {
+          // Follow successful or request sent
+          setTimeout(() => refreshProfile(userId), 500);
+        } else if (result.alreadyExists) {
+          // Follow request already exists - show appropriate message
+          alert(result.message || 'Follow request already sent');
+          // Still refresh to update UI state
+          setTimeout(() => refreshProfile(userId), 500);
+        }
+      }
     } catch (error) {
       console.error('❌ Follow error:', error);
-      alert('Failed to update follow status');
+      alert('Failed to update follow status: ' + error.message);
     }
   };
 

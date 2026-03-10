@@ -1,26 +1,28 @@
-import express from 'express'
+ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import 'dotenv/config';
+import { createServer } from 'http';
 
 import Authrouter from "./routes/auth.js"
 import Postrouter from "./routes/post.js"
 import Userrouter from './routes/user.js'
 import storyrouter from './routes/story.js'
+import feedRouter from './routes/feed.js'
 import uploadrouter from "./routes/upload.js"
+import notificationrouter from './routes/notification.js'
 import fileUpload from 'express-fileupload';
 import chatrouter from './routes/chat.js';
-
-// Note: Socket.IO disabled for Vercel serverless deployment
-// const SocketServer = require('./socket/socketServer.js');
-// const { createServer } = require('http');
+import SocketServer from './socket/socketServer.js';
 
 const app = express()
 
 // Updated CORS configuration to allow both localhost and production URLs
 const allowedOrigins = [
     'https://instagram-clone-phi-dusky.vercel.app', // Production URL
-    'http://localhost:3000' // Development URL
+    'http://localhost:3000', // Development URL
+    'http://localhost:3001', // Alternative development URL
+    'http://localhost:3002' // Additional development URL
 ];
 
 const corsOptions = {
@@ -87,12 +89,19 @@ app.get('/', (req, res) => {
 app.use(Authrouter)
 app.use(Postrouter)
 app.use(Userrouter)
-app.use(storyrouter)
+app.use('/story', storyrouter)
+app.use('/feed', feedRouter)
 app.use(uploadrouter)
 app.use(chatrouter)
+app.use('/notification', notificationrouter)
 
-// Note: Socket.IO disabled for Vercel serverless deployment
-// app.set('socketio', socketServer.getIO());  //socket for routes if need
+// Initialize Socket.IO for local development
+if (process.env.NODE_ENV !== 'production') {
+  // Socket.IO will be initialized when server starts
+} else {
+  // Note: Socket.IO disabled for Vercel serverless deployment
+  // app.set('socketio', socketServer.getIO());  //socket for routes if need
+}
 
 app.use((err, req, res, next) => {
     res.status(500).json({
@@ -104,11 +113,17 @@ app.use((err, req, res, next) => {
 // Connect to database
 DBConnect()
 
-// For local development, start the server
+// For local development, start the server with Socket.IO
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  const server = createServer(app);
+  const socketServer = new SocketServer(server);
+
+  // Make io accessible globally for notifications
+  app.set('io', socketServer.getIO());
+
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} with Socket.IO`);
   });
 }
 

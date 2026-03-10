@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { FaHeart, FaComment, FaShare, FaBookmark, FaEllipsisH } from 'react-icons/fa';
 
 const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const { user, token } = useAuth();
@@ -16,6 +17,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const [showReplies, setShowReplies] = useState({});
   const [commentLikes, setCommentLikes] = useState({});
   const [replyLikes, setReplyLikes] = useState({});
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     if (post.like) {
@@ -43,7 +45,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const handleLike = async () => {
     try {
       const endpoint = liked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -69,7 +71,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +112,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     try {
       const isLiked = commentLikes[commentId];
       const endpoint = isLiked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${endpoint}/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${endpoint}/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -121,9 +123,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         const data = await response.json();
         const updatedComments = data.result.Comment || [];
         setComments(updatedComments);
-        // Update parent post data
         onPostUpdate(post._id, { Comment: updatedComments });
-        // Update local like state
         setCommentLikes(prev => ({
           ...prev,
           [commentId]: !isLiked
@@ -141,7 +141,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     try {
       const isLiked = replyLikes[replyId];
       const endpoint = isLiked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${endpoint}/${post._id}/${commentId}/${replyId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${endpoint}/${post._id}/${commentId}/${replyId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -152,9 +152,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
         const data = await response.json();
         const updatedComments = data.result.Comment || [];
         setComments(updatedComments);
-        // Update parent post data
         onPostUpdate(post._id, { Comment: updatedComments });
-        // Update local like state
         setReplyLikes(prev => ({
           ...prev,
           [replyId]: !isLiked
@@ -172,7 +170,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${post._id}/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -199,7 +197,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this reply?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${post._id}/${commentId}/${replyId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}/${replyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -227,7 +225,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setReplyLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}comment/reply/${post._id}/${commentId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -281,208 +279,218 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     return date.toLocaleDateString();
   };
 
-
+  const handleBookmark = () => {
+    setBookmarked(!bookmarked);
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">
+    <div className="bg-white mb-4" style={{ borderRadius: '0px' }}>
       {/* Post Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img
-              src={post.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-              alt="Profile"
-              className="w-10 h-10 rounded-full object-cover cursor-pointer border-2 border-gray-200 hover:border-blue-400 transition-colors"
-              onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
-            />
-            <div>
-              <h4 
-                className="font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
-                onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
-              >
-                {post.postedBy?.name || 'Unknown User'}
-              </h4>
-              <p className="text-sm text-gray-500">
-                {formatDate(post.createdAt || Date.now())}
-              </p>
-            </div>
-          </div>
-          
-          {/* More options menu could go here */}
-          <div className="relative">
-            <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center space-x-3">
+          <div 
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer overflow-hidden"
+            onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
+          >
+            {post.postedBy?.pic ? (
+              <img
+                src={post.postedBy.pic}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
               </svg>
-            </button>
+            )}
+          </div>
+          <div>
+            <p 
+              className="text-sm font-semibold text-gray-900 cursor-pointer hover:underline" 
+              onClick={() => post.postedBy?._id && onNavigate('userProfile', post.postedBy._id)}
+            >
+              {post.postedBy?.name || 'Unknown'}
+            </p>
           </div>
         </div>
+        <button className="text-gray-600 hover:text-gray-800">
+          <FaEllipsisH className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Post Content */}
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{post.title}</h3>
-        <p className="text-gray-700 mb-4 leading-relaxed">{post.body}</p>
-        {post.photo && (
-          <div className="rounded-lg overflow-hidden bg-gray-100">
-            <img
-              src={post.photo}
-              alt="Post content"
-              className="w-full max-h-96 object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-              onClick={() => {
-                // Could open image in modal
-              }}
-            />
+      {/* Post Image */}
+      <div className="w-full bg-gray-100" style={{ minHeight: '400px', maxHeight: '600px' }}>
+        {post.photo ? (
+          <img
+            src={post.photo}
+            alt={post.title || 'post image'}
+            className="w-full h-full object-cover"
+            style={{ minHeight: '400px', maxHeight: '600px' }}
+          />
+        ) : (
+          <div className="w-full flex items-center justify-center bg-gray-100" style={{ minHeight: '400px' }}>
+            <div className="text-center">
+              <svg className="mx-auto w-20 h-20 text-gray-300 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+              </svg>
+              <p className="text-gray-400 text-sm">IMAGE PLACEHOLDER</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Post Actions */}
-      <div className="px-4 py-3 border-t border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+      {/* Interaction Bar */}
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-4">
             <button
               onClick={handleLike}
-              className={`flex items-center space-x-2 transition-colors ${
-                liked ? 'text-red-600' : 'text-gray-600 hover:text-red-600'
-              }`}
+              className={`transition-all ${liked ? 'text-red-500' : 'text-gray-900'}`}
+              aria-label={liked ? 'Unlike' : 'Like'}
             >
-              <svg 
-                className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} 
-                fill={liked ? 'currentColor' : 'none'} 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
-                />
-              </svg>
-              <span className="font-medium">{likeCount}</span>
-              <span className="hidden sm:inline">{likeCount === 1 ? 'Like' : 'Likes'}</span>
+              {liked ? (
+                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              )}
             </button>
 
             <button
               onClick={() => setShowComments(!showComments)}
-              className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="text-gray-900"
+              aria-label="Comment"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <span className="font-medium">{comments.length}</span>
-              <span className="hidden sm:inline">{comments.length === 1 ? 'Comment' : 'Comments'}</span>
             </button>
 
-            <button className="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            <button className="text-gray-900" aria-label="Share">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
-              <span className="hidden sm:inline">Share</span>
             </button>
           </div>
+
+          <button 
+            onClick={handleBookmark}
+            className={`${bookmarked ? 'text-gray-900' : 'text-gray-900'}`}
+            aria-label="Bookmark"
+          >
+            {bookmarked ? (
+              <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+              </svg>
+            ) : (
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            )}
+          </button>
         </div>
+
+        {/* Like Count */}
+        {likeCount > 0 && (
+          <p className="text-sm font-semibold text-gray-900 mb-2">
+            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+          </p>
+        )}
+
+        {/* Caption */}
+        {(post.caption || post.body) && (
+          <div className="text-sm mb-2">
+            <span className="font-semibold text-gray-900 mr-2">
+              {post.postedBy?.name || 'Unknown'}
+            </span>
+            <span className="text-gray-900">{post.caption || post.body}</span>
+          </div>
+        )}
+
+        {/* View Comments */}
+        {comments.length > 0 && !showComments && (
+          <button
+            onClick={() => setShowComments(true)}
+            className="text-sm text-gray-500 hover:text-gray-700 mb-2"
+          >
+            View all {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+          </button>
+        )}
+
+        {/* Time */}
+        <p className="text-xs text-gray-400 uppercase">
+          {formatDate(post.createdAt || Date.now())}
+        </p>
       </div>
 
       {/* Comments Section */}
       {showComments && (
-        <div className="border-t border-gray-200 bg-gray-50">
-          {/* Add Comment */}
-          <div className="p-4 border-b border-gray-200 bg-white">
-            <div className="flex space-x-3">
-              <img
-                src={user?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-                alt="Your profile"
-                className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
-              />
-              <div className="flex-1 flex space-x-2">
-                <input
-                  type="text"
-                  placeholder="Write a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={commentLoading}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 transition-colors"
-                  maxLength={200}
-                />
-                <button
-                  onClick={handleComment}
-                  disabled={!newComment.trim() || commentLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
-                >
-                  {commentLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      <span className="hidden sm:inline">Post</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="text-right text-xs text-gray-500 mt-1">
-              {newComment.length}/200
-            </div>
-          </div>
-
+        <div className="border-t border-gray-200">
           {/* Comments List */}
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto">
             {comments.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                <p>No comments yet. Be the first to comment!</p>
+              <div className="p-6 text-center">
+                <p className="text-sm text-gray-500">No comments yet</p>
+                <p className="text-xs text-gray-400 mt-1">Be the first to comment!</p>
               </div>
             ) : (
               comments.map((comment, index) => (
                 <div
                   key={comment._id || index}
-                  className="p-4 border-b border-gray-200 last:border-b-0 bg-white hover:bg-gray-50 transition-colors"
+                  className="px-4 py-3 hover:bg-gray-50"
                 >
                   <div className="flex space-x-3">
-                    <img
-                      src={comment.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-                      alt="Commenter"
-                      className="w-6 h-6 rounded-full object-cover border border-gray-200 cursor-pointer"
+                    <div 
+                      className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0"
                       onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
-                    />
+                    >
+                      {comment.postedBy?.pic ? (
+                        <img
+                          src={comment.postedBy.pic}
+                          alt="Commenter"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
+                      <div className="text-sm">
                         <span
-                          className="font-medium text-sm text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
+                          className="font-semibold text-gray-900 hover:underline cursor-pointer mr-2"
                           onClick={() => comment.postedBy?._id && onNavigate('userProfile', comment.postedBy._id)}
                         >
                           {comment.postedBy?.name || 'Anonymous'}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-gray-900">{comment.text}</span>
+                      </div>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <span className="text-xs text-gray-400">
                           {formatDate(comment.createdAt || Date.now())}
                         </span>
-                      </div>
-                      <p className="text-sm text-gray-700 mt-1 break-words">
-                        {comment.text}
-                      </p>
-                      <div className="flex items-center space-x-4 mt-2">
                         <button
                           onClick={() => handleCommentLike(comment._id)}
-                          className={`text-xs transition-colors ${
-                            commentLikes[comment._id] ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+                          className={`text-xs font-semibold ${
+                            commentLikes[comment._id] ? 'text-red-500' : 'text-gray-500'
                           }`}
                         >
-                          Like
+                          {commentLikes[comment._id] ? 'Liked' : 'Like'}
                         </button>
                         <button
                           onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
-                          className="text-xs text-gray-500 hover:text-blue-500 transition-colors"
+                          className="text-xs font-semibold text-gray-500"
                         >
                           Reply
                         </button>
                         {comment.postedBy._id === user._id && (
                           <button
                             onClick={() => handleDeleteComment(comment._id)}
-                            className="text-xs text-gray-500 hover:text-red-500 transition-colors"
+                            className="text-xs font-semibold text-gray-500 hover:text-red-500"
                           >
                             Delete
                           </button>
@@ -490,17 +498,19 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                         {comment.replies && comment.replies.length > 0 && (
                           <button
                             onClick={() => toggleReplies(comment._id)}
-                            className="text-xs text-gray-500 hover:text-blue-500 transition-colors"
+                            className="text-xs font-semibold text-gray-500"
                           >
-                            {showReplies[comment._id] ? 'Hide' : 'Show'} Replies ({comment.replies.length})
+                            {showReplies[comment._id] ? 'Hide' : 'View'} {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
                           </button>
                         )}
                       </div>
+
+                      {/* Reply Input */}
                       {replyingTo === comment._id && (
-                        <div className="mt-2 flex space-x-2">
+                        <div className="mt-3 flex space-x-2">
                           <input
                             type="text"
-                            placeholder="Write a reply..."
+                            placeholder="Add a reply..."
                             value={newReply}
                             onChange={(e) => setNewReply(e.target.value)}
                             onKeyPress={(e) => {
@@ -510,64 +520,68 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
                               }
                             }}
                             disabled={replyLoading}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                            className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 disabled:opacity-50"
                             maxLength={200}
                           />
                           <button
                             onClick={() => handleReply(comment._id)}
                             disabled={!newReply.trim() || replyLoading}
-                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+                            className="px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {replyLoading ? (
-                              <LoadingSpinner size="sm" />
-                            ) : (
-                              'Reply'
-                            )}
+                            {replyLoading ? <LoadingSpinner size="sm" /> : 'Post'}
                           </button>
                         </div>
                       )}
+
+                      {/* Replies */}
                       {showReplies[comment._id] && comment.replies && comment.replies.map((reply, rIndex) => (
-                        <div key={reply._id || rIndex} className="mt-2 ml-6 border-l-2 border-gray-200 pl-3">
-                          <div className="flex space-x-2">
-                            <img
-                              src={reply.postedBy?.pic || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1YjmQy7iBycLxXrdwvrl38TG9G_LxSHC1eg&s'}
-                              alt="Reply"
-                              className="w-5 h-5 rounded-full object-cover border border-gray-200 cursor-pointer"
-                              onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
-                            />
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-1">
-                                <span
-                                  className="font-medium text-xs text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
-                                  onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
-                                >
-                                  {reply.postedBy?.name || 'Anonymous'}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {formatDate(reply.createdAt || Date.now())}
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-700 break-words">
-                                {reply.text}
-                              </p>
-                              <div className="flex items-center space-x-2 mt-1">
+                        <div key={reply._id || rIndex} className="mt-3 ml-8 flex space-x-3">
+                          <div 
+                            className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0"
+                            onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
+                          >
+                            {reply.postedBy?.pic ? (
+                              <img
+                                src={reply.postedBy.pic}
+                                alt="Reply"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm">
+                              <span
+                                className="font-semibold text-gray-900 hover:underline cursor-pointer mr-2"
+                                onClick={() => reply.postedBy?._id && onNavigate('userProfile', reply.postedBy._id)}
+                              >
+                                {reply.postedBy?.name || 'Anonymous'}
+                              </span>
+                              <span className="text-gray-900">{reply.text}</span>
+                            </div>
+                            <div className="flex items-center space-x-4 mt-1">
+                              <span className="text-xs text-gray-400">
+                                {formatDate(reply.createdAt || Date.now())}
+                              </span>
+                              <button
+                                onClick={() => handleReplyLike(comment._id, reply._id)}
+                                className={`text-xs font-semibold ${
+                                  replyLikes[reply._id] ? 'text-red-500' : 'text-gray-500'
+                                }`}
+                              >
+                                {replyLikes[reply._id] ? 'Liked' : 'Like'}
+                              </button>
+                              {reply.postedBy._id === user._id && (
                                 <button
-                                  onClick={() => handleReplyLike(comment._id, reply._id)}
-                                  className={`text-xs transition-colors ${
-                                    replyLikes[reply._id] ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
-                                  }`}
+                                  onClick={() => handleDeleteReply(comment._id, reply._id)}
+                                  className="text-xs font-semibold text-gray-500 hover:text-red-500"
                                 >
-                                  Like
+                                  Delete
                                 </button>
-                                {reply.postedBy._id === user._id && (
-                                  <button
-                                    onClick={() => handleDeleteReply(comment._id, reply._id)}
-                                    className="text-xs text-gray-500 hover:text-red-500 transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -578,10 +592,48 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
               ))
             )}
           </div>
+
+          {/* Add Comment */}
+          <div className="border-t border-gray-200 px-4 py-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {user?.pic ? (
+                  <img
+                    src={user.pic}
+                    alt="Your profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              <input
+                type="text"
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={commentLoading}
+                className="flex-1 text-sm px-0 py-2 border-0 focus:outline-none focus:ring-0 disabled:opacity-50 placeholder-gray-400"
+                maxLength={200}
+              />
+              {newComment.trim() && (
+                <button
+                  onClick={handleComment}
+                  disabled={!newComment.trim() || commentLoading}
+                  className="text-sm font-semibold text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                >
+                  {commentLoading ? <LoadingSpinner size="sm" /> : 'Post'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default PostCard
+export default PostCard;

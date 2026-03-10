@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FaHome, FaUserCircle, FaSignOutAlt, FaComments, FaSearch } from 'react-icons/fa';
+import { FaHome, FaUserCircle, FaSignOutAlt, FaComments, FaSearch, FaBell } from 'react-icons/fa';
 import SearchUsers from '../common/SearchUsers';
+import useNotifications from '../../hooks/useNotifications';
+import NotificationDropdown from '../common/NotificationDropdown';
 
 const Layout = ({ children, onNavigate, activeTab, hideNav = false }) => {
   const { logout } = useAuth();
   const [showSearch, setShowSearch] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const handleLogout = () => {
     logout();
@@ -26,9 +30,35 @@ const Layout = ({ children, onNavigate, activeTab, hideNav = false }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-900 font-sans relative">
+      {/* Header with notifications */}
+      {!hideNav && (
+        <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-40 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="text-xl font-bold text-gray-900">SocialPulse</h1>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-full transition-colors"
+              >
+                <FaBell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <NotificationDropdown
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+              />
+            </div>
+          </div>
+        </header>
+      )}
+
       <main className={`flex-grow transition-all duration-300 ${
-        hideNav ? 'pb-0' : 'pb-20'
-      }`}>
+        hideNav ? 'pt-0' : 'pt-16'
+      } ${hideNav ? 'pb-0' : 'pb-20'}`}>
         {children}
       </main>
 

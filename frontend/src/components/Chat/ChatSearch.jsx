@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { FaSearch, FaUserPlus, FaTimes } from 'react-icons/fa';
+import getApiUrl from '../../utils/api';
 
 const ChatSearch = ({ onStartConversation, onClose }) => {
   const { token } = useAuth();

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
+import Story from '../models/Story.js';
 
 class SocketServer {
     constructor(server) {
@@ -242,6 +243,36 @@ class SocketServer {
         
         socket.on('disconnect', () => {
             this.handleDisconnection(socket);
+        });
+
+        // Story notification events
+        socket.on('story_created', async (data) => {
+            try {
+                const { storyId } = data;
+                const story = await Story.findById(storyId).populate('user', 'name pic');
+
+                if (story) {
+                    // Notify followers about new story
+                    const user = await User.findById(story.user._id).populate('followers', '_id');
+
+                    user.followers.forEach(follower => {
+                        const followerSocket = this.users.get(follower._id.toString());
+                        if (followerSocket) {
+                            this.io.to(followerSocket.socketId).emit('new_story_notification', {
+                                story: {
+                                    _id: story._id,
+                                    user: story.user,
+                                    type: story.type,
+                                    createdAt: story.createdAt
+                                },
+                                message: `${story.user.name} added a new story`
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Story notification error:', error);
+            }
         });
     }
 

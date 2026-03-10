@@ -8,6 +8,8 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 import ChatPage from './components/Chat/ChatPage';
+import CreateStory from './components/Story/CreateStory';
+import StoryViewer from './components/Story/StoryViewer';
 
 const AppRouter = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -85,6 +87,8 @@ const AppRouter = () => {
         return 'profile';
       case 'chat':
         return 'chat';
+      case 'createStory':
+        return 'create';
       default:
         return 'home';
     }
@@ -107,11 +111,23 @@ const AppRouter = () => {
         return <UserProfile userId={selectedUserId} onNavigate={navigate} />;
       case 'chat':
         return (
-          <ChatPage 
-            onNavigate={navigate} 
+          <ChatPage
+            onNavigate={navigate}
             initialConversation={selectedConversation}
             onSelectConversation={handleSelectConversation}
             onBackFromChat={handleBackFromChat}
+          />
+        );
+      case 'createStory':
+        return <CreateStory onNavigate={navigate} onStoryCreated={() => navigate('home')} />;
+      case 'storyViewer':
+        const { stories, currentIndex } = selectedUserId || {};
+        return (
+          <StoryViewer
+            stories={stories || []}
+            currentIndex={currentIndex || 0}
+            onClose={() => navigate('home')}
+            onNavigate={navigate}
           />
         );
       default:

@@ -31,19 +31,15 @@ const useFollow = () => {
 
       console.log('➕ Follow response status:', response.status);
 
+      const data = await response.json();
+      console.log('➕ Follow response data:', data);
+
+      // Handle different response scenarios
       if (response.ok) {
-        const data = await response.json();
-        console.log('➕ Follow response data:', data);
-        return data;
+        return { success: true, ...data };
       } else {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { error: 'Failed to parse error response' };
-        }
-        console.error('❌ Follow error:', errorData);
-        throw new Error(errorData.error || errorData.msg || 'Failed to follow user');
+        // Handle validation errors (already following, request already sent)
+        return { success: false, alreadyExists: true, message: data.error || data.msg || 'Failed to follow user' };
       }
     } catch (error) {
       console.error('❌ Follow network error:', error);

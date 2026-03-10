@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -16,6 +16,94 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
   const [activeTab, setActiveTab] = useState('chats');
   const [showSearch, setShowSearch] = useState(false);
 
+  const updateConversationOnNewMessage = useCallback((messageData) => {
+
+    const messages = Array.isArray(messageData) ? messageData : [messageData];
+
+    messages.forEach((messageItem) => {
+      const message = messageItem.message || messageItem;
+
+      if (message && message.conversation) {
+        const conversationId = message.conversation;
+        const newMessage = message;
+        const isFromCurrentUser = newMessage.sender._id === user?._id;
+
+
+        setConversations(prev => {
+          const conversationExists = prev.find(conv => conv._id === conversationId);
+
+          if (conversationExists) {
+
+            return prev.map(conv => {
+              if (conv._id === conversationId) {
+                const currentUnreadCount = conv.unreadCount || 0;
+
+
+                const newUnreadCount = isFromCurrentUser ? 0 : currentUnreadCount + 1;
+
+                return {
+                  ...conv,
+                  lastMessage: newMessage,
+                  lastActivity: newMessage.createdAt,
+                  unreadCount: newUnreadCount
+                };
+              }
+              return conv;
+            });
+          } else {
+
+            console.log(`Creating new conversation entry for ${conversationId}`);
+            const otherParticipant = isFromCurrentUser
+              ? newMessage.recipient || newMessage.recipientId
+              : newMessage.sender;
+
+            const initialUnreadCount = isFromCurrentUser ? 0 : 1;
+
+            const newConversation = {
+              _id: conversationId,
+              participants: [user, otherParticipant],
+              lastMessage: newMessage,
+              lastActivity: newMessage.createdAt,
+              unreadCount: initialUnreadCount,
+              createdAt: new Date().toISOString()
+            };
+
+            return [newConversation, ...prev];
+          }
+        });
+
+        setConversations(prev => {
+          const conversationIndex = prev.findIndex(conv => conv._id === conversationId);
+          if (conversationIndex > -1) {
+            const updatedConversations = [...prev];
+            const [conversation] = updatedConversations.splice(conversationIndex, 1);
+            return [conversation, ...updatedConversations];
+          }
+          return prev;
+        });
+      }
+    });
+  }, [user]);
+
+  const markConversationAsRead = useCallback((data) => {
+    console.log('ChatList: Marking conversation as read:', data);
+
+    if (!user) return; // Early return if user is null
+
+    const readDataArray = Array.isArray(data) ? data : [data];
+
+    readDataArray.forEach((readData) => {
+      if (readData.conversationId && readData.readBy === user._id) {
+
+        setConversations(prev => prev.map(conv =>
+          conv._id === readData.conversationId
+            ? { ...conv, unreadCount: 0 }
+            : conv
+        ));
+      }
+    });
+  }, [user]);
+
   const handleTypingIndicator = useCallback((data) => {
     // Handle typing indicator logic here if needed
     console.log('Typing indicator:', data);
@@ -25,6 +113,18 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     // Handle stop typing indicator logic here if needed
     console.log('Stop typing indicator:', data);
   }, []);
+
+  // Use refs to prevent useEffect re-runs
+  const updateConversationOnNewMessageRef = useRef();
+  const markConversationAsReadRef = useRef();
+  const handleTypingIndicatorRef = useRef();
+  const handleStopTypingIndicatorRef = useRef();
+
+  // Assign to refs
+  updateConversationOnNewMessageRef.current = updateConversationOnNewMessage;
+  markConversationAsReadRef.current = markConversationAsRead;
+  handleTypingIndicatorRef.current = handleTypingIndicator;
+  handleStopTypingIndicatorRef.current = handleStopTypingIndicator;
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -165,94 +265,6 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     onSelectConversation(conversation);
   };
 
-  const updateConversationOnNewMessage = useCallback((messageData) => {
-    
-    const messages = Array.isArray(messageData) ? messageData : [messageData];
-    
-    messages.forEach((messageItem) => {
-      const message = messageItem.message || messageItem;
-      
-      if (message && message.conversation) {
-        const conversationId = message.conversation;
-        const newMessage = message;
-        const isFromCurrentUser = newMessage.sender._id === user._id;
-        
-        
-        setConversations(prev => {
-          const conversationExists = prev.find(conv => conv._id === conversationId);
-          
-          if (conversationExists) {
-            
-            return prev.map(conv => {
-              if (conv._id === conversationId) {
-                const currentUnreadCount = conv.unreadCount || 0;
-                
-                
-                const newUnreadCount = isFromCurrentUser ? 0 : currentUnreadCount + 1;
-                
-                return {
-                  ...conv,
-                  lastMessage: newMessage,
-                  lastActivity: newMessage.createdAt,
-                  unreadCount: newUnreadCount
-                };
-              }
-              return conv;
-            });
-          } else {
-          
-            console.log(`Creating new conversation entry for ${conversationId}`);
-            const otherParticipant = isFromCurrentUser 
-              ? newMessage.sender
-              : newMessage.sender;
-          
-            const initialUnreadCount = isFromCurrentUser ? 0 : 1;
-            
-            const newConversation = {
-              _id: conversationId,
-              participants: [user, otherParticipant],
-              lastMessage: newMessage,
-              lastActivity: newMessage.createdAt,
-              unreadCount: initialUnreadCount,
-              createdAt: new Date().toISOString()
-            };
-            
-            return [newConversation, ...prev];
-          }
-        });
-
-        setConversations(prev => {
-          const conversationIndex = prev.findIndex(conv => conv._id === conversationId);
-          if (conversationIndex > -1) {
-            const updatedConversations = [...prev];
-            const [conversation] = updatedConversations.splice(conversationIndex, 1);
-            return [conversation, ...updatedConversations];
-          }
-          return prev;
-        });
-      }
-    });
-  }, [user]);
-
-
-
-  const markConversationAsRead = useCallback((data) => {
-    console.log('ChatList: Marking conversation as read:', data);
-    
-    const readDataArray = Array.isArray(data) ? data : [data];
-    
-    readDataArray.forEach((readData) => {
-      if (readData.conversationId && readData.readBy === user._id) {
- 
-        setConversations(prev => prev.map(conv => 
-          conv._id === readData.conversationId 
-            ? { ...conv, unreadCount: 0 }
-            : conv
-        ));
-      }
-    });
-  }, [user._id]);
-
  
 
 
@@ -268,13 +280,15 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
 
     console.log('🎯 ChatList: Setting up socket listeners');
 
-    const cleanupNewMessage = onNewMessage(updateConversationOnNewMessage);
+    const stableUpdateConversationOnNewMessage = (...args) => updateConversationOnNewMessageRef.current?.(...args);
+    const stableMarkConversationAsRead = (...args) => markConversationAsReadRef.current?.(...args);
+    const stableHandleTypingIndicator = (...args) => handleTypingIndicatorRef.current?.(...args);
+    const stableHandleStopTypingIndicator = (...args) => handleStopTypingIndicatorRef.current?.(...args);
 
-    const cleanupMessagesRead = onMessagesRead(markConversationAsRead);
-
-    const cleanupTyping = onTyping(handleTypingIndicator);
-
-    const cleanupStopTyping = onStopTyping(handleStopTypingIndicator);
+    const cleanupNewMessage = onNewMessage(stableUpdateConversationOnNewMessage);
+    const cleanupMessagesRead = onMessagesRead(stableMarkConversationAsRead);
+    const cleanupTyping = onTyping(stableHandleTypingIndicator);
+    const cleanupStopTyping = onStopTyping(stableHandleStopTypingIndicator);
 
     return () => {
       cleanupNewMessage();
@@ -287,11 +301,7 @@ const ChatList = ({ onSelectConversation, refreshTrigger, onNewConversation }) =
     onNewMessage,
     onMessagesRead,
     onTyping,
-    onStopTyping,
-    updateConversationOnNewMessage,
-    markConversationAsRead,
-    handleTypingIndicator,
-    handleStopTypingIndicator
+    onStopTyping
   ]);
 
   const ChatItem = ({ conversation, isRequest = false }) => {

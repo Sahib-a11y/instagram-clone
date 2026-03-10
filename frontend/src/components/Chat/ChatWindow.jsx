@@ -3,19 +3,21 @@ import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../hooks/useSocket';
 import LoadingSpinner from '../common/LoadingSpinner';
 import TimeAgo from '../common/TimeAgo';
+import getApiUrl from '../../utils/api';
 import { FaPaperPlane, FaArrowLeft, FaComments, FaCheck, FaCheckDouble, FaCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter }) => {
   const { token, user } = useAuth();
-  const { 
-    joinConversation, 
-    leaveConversation, 
-    sendMessage: sendSocketMessage, 
-    onNewMessage, 
-    onTyping, 
+  const {
+    joinConversation,
+    leaveConversation,
+    sendMessage: sendSocketMessage,
+    onNewMessage,
+    onTyping,
     onStopTyping,
     onMessagesRead,
-    isConnected 
+    isConnected,
+    reconnect
   } = useSocket();
   
   const [messages, setMessages] = useState([]);
@@ -24,6 +26,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
+  // const [conversationMessages, setConversationMessages] = useState({});
   
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -35,6 +38,13 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   const shouldScrollRef = useRef(true);
   const lastSentTypingRef = useRef('');
   const lastConversationUpdateRef = useRef(0); // NEW: Track last update time
+  const hasFetchedRef = useRef(false); // Prevent multiple fetches
+
+  // Use refs for socket handlers to prevent useEffect re-runs
+  const handleNewMessageRef = useRef();
+  // const handleTypingRef = useRef();
+  // const handleStopTypingRef = useRef();
+  // const handleMessageReadRef = useRef();
 
   const otherParticipant = conversation?.participants?.find(
     p => p._id !== user?._id
@@ -49,21 +59,40 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     };
   }, []);
 
+  // Debug socket connection
+  useEffect(() => {
+    console.log('🔌 ChatWindow: Socket connected?', isConnected());
+    console.log('👤 ChatWindow: User:', user?._id);
+    console.log('💬 ChatWindow: Conversation:', conversation?._id);
+  }, [isConnected, user, conversation]);
+
   useEffect(() => {
     if (conversation && inputRef.current) {
       setTimeout(() => inputRef.current.focus(), 300);
     }
   }, [conversation]);
 
+  // Reset fetch flag when conversation changes
+  useEffect(() => {
+    hasFetchedRef.current = false;
+  }, [conversation?._id]);
+
   const fetchMessages = useCallback(async () => {
     if (!conversation || !isMountedRef.current) return;
-    
+
+    // Prevent multiple fetches for the same conversation
+    if (hasFetchedRef.current === conversation._id) {
+      console.log('⚠️ Messages already fetched for this conversation, skipping');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/conversation/${conversation._id}/messages?limit=100`,
+        getApiUrl(`/conversation/${conversation._id}/messages?limit=100`),
         {
-          headers: {
+          headers:
+           {
             'Authorization': `Bearer ${token}`
           }
         }
@@ -73,6 +102,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         const data = await response.json();
         if (isMountedRef.current) {
           setMessages(data.messages || []);
+          hasFetchedRef.current = conversation._id; // Mark as fetched
         }
       }
     } catch (error) {
@@ -84,16 +114,23 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   }, [conversation, token]);
 
   const markMessagesAsRead = useCallback(async () => {
-    if (!conversation || !isConnected()) return;
+    if (!conversation) return;
 
-    try {      
-      sendSocketMessage('mark_messages_read', {
-        conversationId: conversation._id
+    try {
+      const response = await fetch(getApiUrl(`/conversation/${conversation._id}/read`), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+
+      if (response.ok) {
+        console.log('Messages marked as read');
+      }
     } catch (error) {
       console.error('Mark read error:', error);
     }
-  }, [conversation, isConnected, sendSocketMessage]);
+  }, [conversation, token]);
 
   const isMessageRead = (message) => {
     if (!message || !message.readBy || !Array.isArray(message.readBy)) return false;
@@ -187,19 +224,23 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
   }, [sendSocketMessage, user._id, user.name, user.pic, isConnected]);
 
   // FIXED: Message handler with debounced conversation updates
-  const handleNewMessage = useCallback((data) => {  
+  const handleNewMessage = useCallback((data) => {
     console.log('📨 New message received:', data);
-    
+    console.log('Current conversationId:', conversationIdRef.current);
+    console.log('Message conversation:', data?.message?.conversation);
+
     if (!isMountedRef.current) return;
-    
+
     const messageData = Array.isArray(data) ? data[0] : data;
-    
+
+    console.log('Message data:', messageData);
+
     if (messageData.message && messageData.message.conversation === conversationIdRef.current) {
       console.log('✅ Adding message to UI');
-      
+
       setMessages(prev => {
         const messageExists = prev.some(msg => msg._id === messageData.message._id);
-        
+
         if (messageExists) {
           console.log('⚠️ Message already exists, skipping');
           return prev;
@@ -208,13 +249,13 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         // Replace optimistic message
         if (messageData.tempId) {
           console.log('🔄 Replacing optimistic message with tempId:', messageData.tempId);
-          const updatedMessages = prev.map(msg => 
+          const updatedMessages = prev.map(msg =>
             msg._id === messageData.tempId ? { ...messageData.message } : msg
           );
-          
+
           if (updatedMessages.some(msg => msg._id === messageData.message._id)) {
             console.log('✅ Optimistic message replaced');
-            
+
             // Don't trigger conversation update for optimistic message replacements
             // This prevents unnecessary parent re-renders
             return updatedMessages;
@@ -223,27 +264,27 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
 
         // Add new message
         console.log('➕ Adding new message to chat');
-        const newMessages = [...prev, messageData.message];            
+        const newMessages = [...prev, messageData.message];
         if (messageData.message.sender._id !== user._id) {
           console.log('📖 Marking messages as read');
           setTimeout(() => {
             markMessagesAsRead();
           }, 100);
         }
-        
+
         return newMessages;
       });
-      
+
       // FIXED: Only trigger conversation update for actual NEW messages (not from current user)
       // and use debouncing to prevent multiple rapid updates
       const now = Date.now();
-      const shouldUpdate = messageData.message.sender._id !== user._id && 
+      const shouldUpdate = messageData.message.sender._id !== user._id &&
                           now - lastConversationUpdateRef.current > 2000; // 2 second cooldown
-      
+
       if (shouldUpdate && onConversationUpdate) {
         console.log('🔄 Triggering conversation update (new incoming message)');
         lastConversationUpdateRef.current = now;
-        
+
         // Use setTimeout to prevent blocking and allow UI to update first
         setTimeout(() => {
           if (isMountedRef.current) {
@@ -251,12 +292,15 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
           }
         }, 100);
       }
-      
+
       setTimeout(scrollToBottom, 100);
     } else {
       console.log('❌ Message not for current conversation');
     }
   }, [user._id, onConversationUpdate, markMessagesAsRead, scrollToBottom]);
+
+  // Assign to ref to prevent useEffect re-runs
+  handleNewMessageRef.current = handleNewMessage;
 
   const handleMessageRead = useCallback((data) => {
     console.log('📖 Message read receipt data:', data);
@@ -291,20 +335,25 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
 
   const handleTyping = useCallback((data) => {
     console.log('⌨️ TYPING EVENT RECEIVED:', data);
-    
+    console.log('Current conversationId:', conversationIdRef.current);
+    console.log('Current user._id:', user?._id);
+
     if (!isMountedRef.current) return;
-    
+
     const typingData = Array.isArray(data) ? data[0] : data;
-    
+
+    console.log('Typing data conversationId:', typingData.conversationId);
+    console.log('Typing data userId:', typingData.userId);
+
     if (typingData.conversationId === conversationIdRef.current && typingData.userId !== user?._id) {
       console.log('✅ SHOWING TYPING INDICATOR for user:', typingData.user?.name);
       setIsTyping(true);
       setTypingUser(typingData.user);
-      
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       typingTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
           console.log('⏰ Hiding typing indicator (timeout)');
@@ -312,6 +361,8 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
           setTypingUser(null);
         }
       }, 3000);
+    } else {
+      console.log('❌ Not showing typing indicator - condition not met');
     }
   }, [user?._id]);
 
@@ -334,7 +385,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     }
   }, [user?._id]);
 
-  // Socket setup
+  // Socket setup - only depend on conversation._id to prevent multiple runs
   useEffect(() => {
     if (conversation?._id && isMountedRef.current) {
       console.log('🎯 Setting up socket for conversation:', conversation._id);
@@ -343,7 +394,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
 
       fetchMessages();
 
-      const cleanupNewMessage = onNewMessage(handleNewMessage);
+      const cleanupNewMessage = onNewMessage(handleNewMessageRef.current);
       const cleanupTyping = onTyping(handleTyping);
       const cleanupStopTyping = onStopTyping(handleStopTyping);
       const cleanupMessagesRead = onMessagesRead(handleMessageRead);
@@ -367,9 +418,19 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         }
       }, 1000);
 
+      // Test socket connection
+      const testInterval = setInterval(() => {
+        if (isConnected()) {
+          console.log('🔄 Socket test - connected, conversation:', conversationIdRef.current);
+        } else {
+          console.log('❌ Socket test - disconnected');
+        }
+      }, 5000);
+
       return () => {
         console.log('🧹 Cleaning up socket listeners for conversation:', conversation._id);
         clearInterval(connectionCheckInterval);
+        clearInterval(testInterval);
         leaveConversation(conversation._id);
         cleanupNewMessage();
         cleanupTyping();
@@ -382,11 +443,10 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
         if (isMountedRef.current) {
           setIsTyping(false);
           setTypingUser(null);
-          lastSentTypingRef.current = '';
         }
       };
     }
-  }, [conversation?._id, fetchMessages, handleNewMessage, handleTyping, handleStopTyping, handleMessageRead, joinConversation, leaveConversation, onNewMessage, onTyping, onStopTyping, onMessagesRead, isConnected]);
+  }, [conversation?._id, isConnected, joinConversation, leaveConversation, onNewMessage, onTyping, onStopTyping, onMessagesRead, handleNewMessageRef, handleTyping, handleStopTyping, handleMessageRead, user._id, user.name, user.pic, fetchMessages]);
 
   // Mark messages as read when conversation changes
   useEffect(() => {
@@ -418,7 +478,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     if (!newMessage.trim() || !conversation || !isMountedRef.current) return;
 
     setSending(true);
-    
+
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const tempMessage = {
       _id: tempId,
@@ -428,7 +488,7 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
       readBy: [{ user: user._id, readAt: new Date().toISOString() }],
       isOptimistic: true
     };
-    
+
     // Add optimistic message
     console.log('➕ Adding optimistic message with tempId:', tempId);
     setMessages(prev => [...prev, tempMessage]);
@@ -436,39 +496,97 @@ const ChatWindow = ({ conversation, onBack, onConversationUpdate, onToggleFooter
     setNewMessage('');
 
     try {
-      console.log('🔌 Sending message via socket:', {
+      // Try to send via socket first
+      if (isConnected()) {
+        console.log('📡 Sending message via Socket.IO:', {
+          conversationId: conversation._id,
+          content: messageContent,
+          tempId: tempId
+        });
+
+        const socketSuccess = sendSocketMessage('send_message', {
+          conversationId: conversation._id,
+          content: messageContent,
+          tempId: tempId
+        });
+
+        if (socketSuccess) {
+          console.log('✅ Message sent via socket');
+          const timeoutId = setTimeout(() => {
+            if (isMountedRef.current) {
+              setSending(false);
+              setMessages((prevMessages) => {
+                const updatedMessages = [...prevMessages];
+                const messageIndex = updatedMessages.findIndex(msg => msg.tempId === tempId);
+                if (messageIndex !== -1) {
+                  updatedMessages[messageIndex] = {
+                    ...updatedMessages[messageIndex],
+                    isOptimistic: false,
+                    error: true
+                  };
+                }
+                return updatedMessages;
+              });
+            }
+          }, 15000); // 15 seconds timeout
+
+          const clearOptimisticTimeout = () => clearTimeout(timeoutId);
+          onNewMessage((newMessage) => {
+            if (newMessage.tempId === tempId) {
+              clearOptimisticTimeout();
+              handleNewMessageRef.current(newMessage); // Use existing ref for message handling
+            }
+          });
+
+          sendStopTyping();
+          if (isMountedRef.current) {
+            setSending(false);
+          }
+          return;
+        }
+      }
+
+      // Fallback to HTTP API
+      console.log('📡 Sending message via HTTP API (fallback):', {
         conversationId: conversation._id,
         content: messageContent,
         tempId: tempId
       });
 
-      const success = sendSocketMessage('send_message', {
-        conversationId: conversation._id,
-        content: messageContent,
-        tempId: tempId
+      const response = await fetch(getApiUrl('/message'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          conversationId: conversation._id,
+          content: messageContent
+        })
       });
 
-      if (!success) {
-        throw new Error('Socket not connected');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Message sent successfully via HTTP:', data.message);
+
+        // Replace optimistic message with real message
+        setMessages(prev => prev.map(msg =>
+          msg._id === tempId ? { ...data.message, isOptimistic: false } : msg
+        ));
+
+        // Trigger conversation update for the chat list
+        if (onConversationUpdate) {
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              onConversationUpdate();
+            }
+          }, 100);
+        }
+      } else {
+        throw new Error('Failed to send message');
       }
 
       sendStopTyping();
-
-      // FIXED: Don't trigger conversation update here - let the socket response handle it
-      // This prevents the parent from refreshing while the message is being sent
-
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          setMessages(prev => {
-            const messageStillOptimistic = prev.some(msg => msg._id === tempId && msg.isOptimistic);
-            if (messageStillOptimistic) {
-              console.log('❌ Removing optimistic message - not confirmed');
-              return prev.filter(msg => msg._id !== tempId);
-            }
-            return prev;
-          });
-        }
-      }, 5000);
 
     } catch (error) {
       console.error('Send message error:', error);

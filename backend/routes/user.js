@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import Post from "../models/Post.js";
 import fileUpload from "express-fileupload";
 import cloudinary from "cloudinary";
+import { createFollowNotification, createFollowRequestNotification, createFollowRequestAcceptedNotification } from "../utils/notificationService.js";
 
 const router = Router()
 
@@ -167,21 +168,46 @@ router.put('/follow', requireLogin, async(req, res) => {
             return res.status(422).json({ error: "Already following this user" });
         }
 
-        // For private accounts, this would send a follow request
-        // For now, we'll implement direct following
-        // TODO: Implement follow requests for private accounts
+        // Check if follow request already exists
+        const existingRequest = targetUser.followRequests.find(
+            request => request.from.toString() === currentUserId.toString()
+        );
 
-        await User.findByIdAndUpdate(followId, {
-            $push: { followers: currentUserId }
-        });
-        
-        await User.findByIdAndUpdate(currentUserId, {
-            $push: { following: followId }
-        });
-        
-        return res.status(200).json({
-            msg: targetUser.isPrivate ? "Follow request sent" : "Successfully followed user"
-        });
+        if (existingRequest) {
+            return res.status(422).json({ error: "Follow request already sent" });
+        }
+
+        if (targetUser.isPrivate) {
+            // Send follow request for private accounts
+            await User.findByIdAndUpdate(followId, {
+                $push: { followRequests: { from: currentUserId } }
+            });
+
+            // Create follow request notification
+            await createFollowRequestNotification(currentUserId, followId);
+
+            return res.status(200).json({
+                msg: "Follow request sent",
+                requestSent: true
+            });
+        } else {
+            // Direct follow for public accounts
+            await User.findByIdAndUpdate(followId, {
+                $push: { followers: currentUserId }
+            });
+
+            await User.findByIdAndUpdate(currentUserId, {
+                $push: { following: followId }
+            });
+
+            // Create follow notification
+            await createFollowNotification(currentUserId, followId);
+
+            return res.status(200).json({
+                msg: "Successfully followed user",
+                followed: true
+            });
+        }
     } catch (error) {
         // console.log("Follow error:", error);
         return res.status(500).json({error: "Internal server error"});
@@ -197,16 +223,95 @@ router.put('/unfollow', requireLogin, async(req, res) => {
         await User.findByIdAndUpdate(UnfollowId, {
             $pull: { followers: currentUserId }
         });
-        
+
         await User.findByIdAndUpdate(currentUserId, {
             $pull: { following: UnfollowId }
         });
-        
+
         return res.status(200).json({
             msg: "Successfully unfollowed user"
         });
     } catch (error) {
         // console.log("Unfollow error:", error);
+        return res.status(500).json({error: "Internal server error"});
+    }
+});
+
+
+router.get('/follow-requests', requireLogin, async(req, res) => {
+    try {
+        const currentUserId = req.Userdata._id;
+
+        const user = await User.findById(currentUserId)
+            .populate('followRequests.from', 'name pic email')
+            .select('followRequests');
+
+        return res.status(200).json({
+            followRequests: user.followRequests
+        });
+    } catch (error) {
+        // console.log("Get follow requests error:", error);
+        return res.status(500).json({error: "Internal server error"});
+    }
+});
+
+
+router.put('/accept-follow/:requestId', requireLogin, async(req, res) => {
+    try {
+        const { requestId } = req.params;
+        const currentUserId = req.Userdata._id;
+
+        const user = await User.findById(currentUserId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const requestIndex = user.followRequests.findIndex(
+            req => req._id.toString() === requestId
+        );
+
+        if (requestIndex === -1) {
+            return res.status(404).json({ error: "Follow request not found" });
+        }
+
+        const followRequest = user.followRequests[requestIndex];
+        const requesterId = followRequest.from;
+
+        // Add to followers
+        await User.findByIdAndUpdate(currentUserId, {
+            $push: { followers: requesterId },
+            $pull: { followRequests: { _id: requestId } }
+        });
+
+        // Add to following for requester
+        await User.findByIdAndUpdate(requesterId, {
+            $push: { following: currentUserId }
+        });
+
+        return res.status(200).json({
+            msg: "Follow request accepted"
+        });
+    } catch (error) {
+        // console.log("Accept follow request error:", error);
+        return res.status(500).json({error: "Internal server error"});
+    }
+});
+
+
+router.put('/reject-follow/:requestId', requireLogin, async(req, res) => {
+    try {
+        const { requestId } = req.params;
+        const currentUserId = req.Userdata._id;
+
+        await User.findByIdAndUpdate(currentUserId, {
+            $pull: { followRequests: { _id: requestId } }
+        });
+
+        return res.status(200).json({
+            msg: "Follow request rejected"
+        });
+    } catch (error) {
+        // console.log("Reject follow request error:", error);
         return res.status(500).json({error: "Internal server error"});
     }
 });
