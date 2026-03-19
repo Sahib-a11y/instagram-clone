@@ -1,5 +1,8 @@
+export const getBaseUrl = () =>
+  (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
 const getApiUrl = (endpoint) => {
-  const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+  const baseUrl = getBaseUrl();
   const endpoints = {
     login: '/auth/login',
     register: '/auth/signup',
@@ -15,10 +18,14 @@ const getApiUrl = (endpoint) => {
     deletePost: '/deletepost',
     mypost: '/mypost',
     userProfile: '/user/profile',
-    follow: '/user/follow',
-    unfollow: '/user/unfollow',
+    follow: '/follow',
+    unfollow: '/unfollow',
+    privacy: '/privacy',
     uploadProfilePic: '/upload/upload-profile-pic',
     uploadStory: '/upload/upload-story',
+    notification: '/notification',
+    'notifications/unread-count': '/notification/unread-count',
+    'notifications/mark-all-read': '/notification/mark-all-read',
     story: {
       upload: '/story/upload',
       my: '/story/my',
@@ -26,13 +33,11 @@ const getApiUrl = (endpoint) => {
       feed: '/story/feed',
       delete: '/story',
     },
-    searchUsers: '/user/search',
+    searchUsers: '/search',
     chat: '/chat',
     message: '/message',
     conversation: '/conversation',
     notifications: '/notification',
-    'notifications/unread-count': '/notification/unread-count',
-    'notifications/mark-all-read': '/notification/mark-all-read',
   };
 
   // Handle nested story endpoints
@@ -41,7 +46,13 @@ const getApiUrl = (endpoint) => {
     return baseUrl + endpoints.story[storyEndpoint];
   }
 
-  return baseUrl + (endpoints[endpoint] || endpoint);
+  // Handle dynamic notification read endpoint
+  if (endpoint.startsWith('notifications/') && endpoint.endsWith('/read')) {
+    const id = endpoint.split('/')[1];
+    return `${baseUrl}/notification/${id}/read`;
+  }
+
+  return baseUrl + (endpoints[endpoint] || ('/' + endpoint).replace('//', '/'));
 };
 
 export default getApiUrl;

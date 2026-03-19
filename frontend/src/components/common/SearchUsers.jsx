@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { FaSearch, FaUser, FaLock, FaUserPlus, FaSync } from 'react-icons/fa';
@@ -16,7 +17,7 @@ const SearchUsers = ({ onNavigate }) => {
 
   // Debug API URL on component mount
   useEffect(() => {
-    console.log('🔍 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+    console.log('🔍 API URL:', getBaseUrl());
   }, []);
 
   // Debounced search effect

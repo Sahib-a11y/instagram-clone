@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -38,7 +39,7 @@ const Profile = ({ onNavigate }) => {
 
   const fetchMyPosts = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/mypost`, {
+      const response = await fetch(`${getBaseUrl()}/mypost`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -63,7 +64,7 @@ const Profile = ({ onNavigate }) => {
 
   const fetchHighlights = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/story/highlights`, {
+      const response = await fetch(`${getBaseUrl()}/story/highlights`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -107,7 +108,7 @@ const Profile = ({ onNavigate }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/deletepost/${postId}`, {
+      const response = await fetch(`${getBaseUrl()}/deletepost/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -149,7 +150,7 @@ const Profile = ({ onNavigate }) => {
     formData.append('image', file);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/upload-profile-pic`, {
+      const response = await fetch(`${getBaseUrl()}/upload-profile-pic`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -174,7 +175,7 @@ const Profile = ({ onNavigate }) => {
 
   const updateProfile = async (updateData) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/updateProfile`, {
+      const response = await fetch(`${getBaseUrl()}/updateProfile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +202,7 @@ const Profile = ({ onNavigate }) => {
 
   const handlePrivacyToggle = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+      const response = await fetch(`${getBaseUrl()}/privacy`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

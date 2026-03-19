@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -45,7 +46,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
   const handleLike = async () => {
     try {
       const endpoint = liked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
+      const response = await fetch(`${getBaseUrl()}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +72,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment`, {
+      const response = await fetch(`${getBaseUrl()}/comment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +113,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     try {
       const isLiked = commentLikes[commentId];
       const endpoint = isLiked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${endpoint}/${post._id}/${commentId}`, {
+      const response = await fetch(`${getBaseUrl()}/comment/${endpoint}/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -141,7 +142,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     try {
       const isLiked = replyLikes[replyId];
       const endpoint = isLiked ? 'unlike' : 'like';
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${endpoint}/${post._id}/${commentId}/${replyId}`, {
+      const response = await fetch(`${getBaseUrl()}/comment/reply/${endpoint}/${post._id}/${commentId}/${replyId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -170,7 +171,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this comment?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/${post._id}/${commentId}`, {
+      const response = await fetch(`${getBaseUrl()}/comment/${post._id}/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -197,7 +198,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
     if (!window.confirm('Are you sure you want to delete this reply?')) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}/${replyId}`, {
+      const response = await fetch(`${getBaseUrl()}/comment/reply/${post._id}/${commentId}/${replyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -225,7 +226,7 @@ const PostCard = ({ post, onNavigate, onPostUpdate }) => {
 
     setReplyLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comment/reply/${post._id}/${commentId}`, {
+      const response = await fetch(`${getBaseUrl()}/comment/reply/${post._id}/${commentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

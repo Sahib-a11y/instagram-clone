@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,7 +16,7 @@ const usePosts = () => {
     setError(null);
 
     try {
-      const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+      const baseUrl = getBaseUrl();
       const apiUrl = `${baseUrl}/allpost`;
 
       console.log('📄 Posts API URL:', apiUrl);

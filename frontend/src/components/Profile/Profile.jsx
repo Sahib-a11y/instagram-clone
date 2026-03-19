@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -14,7 +15,7 @@ const Profile = ({ onNavigate }) => {
 
   const fetchMyPosts = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/mypost`, {
+      const response = await fetch(`${getBaseUrl()}/mypost`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -51,7 +52,7 @@ const Profile = ({ onNavigate }) => {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/deletepost/${postId}`, {
+      const response = await fetch(`${getBaseUrl()}/deletepost/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

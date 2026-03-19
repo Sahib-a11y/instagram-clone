@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import io from 'socket.io-client';
@@ -138,8 +139,10 @@ export const ChatProvider = ({ children }) => {
 
   // Initialize Socket Connection
   useEffect(() => {
-    if (isAuthenticated && user && token && !state.socket) {
-      const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+    const isVercel = window.location.hostname.includes('vercel.app') ||
+                     process.env.REACT_APP_DISABLE_SOCKET === 'true';
+    if (isAuthenticated && user && token && !state.socket && !isVercel) {
+      const socket = io(getBaseUrl(), {
         auth: { token }
       });
 
@@ -207,7 +210,7 @@ export const ChatProvider = ({ children }) => {
     dispatch({ type: CHAT_ACTIONS.SET_LOADING, payload: true });
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/conversations`, {
+      const response = await fetch(`${getBaseUrl()}/chat/conversations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -227,7 +230,7 @@ export const ChatProvider = ({ children }) => {
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/chat/messages/${conversationId}`,
+        `${getBaseUrl()}/chat/messages/${conversationId}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
 
@@ -248,7 +251,7 @@ export const ChatProvider = ({ children }) => {
     if (!content.trim()) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/send`, {
+      const response = await fetch(`${getBaseUrl()}/chat/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +283,7 @@ export const ChatProvider = ({ children }) => {
   // Start Conversation
   const startConversation = async (userId) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/start`, {
+      const response = await fetch(`${getBaseUrl()}/chat/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +305,7 @@ export const ChatProvider = ({ children }) => {
   // Mark Messages as Read
   const markMessagesAsRead = async (conversationId) => {
     try {
-      await fetch(`${process.env.REACT_APP_API_URL}/chat/read/${conversationId}`, {
+      await fetch(`${getBaseUrl()}/chat/read/${conversationId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

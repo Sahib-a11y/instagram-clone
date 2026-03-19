@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,7 +13,7 @@ const useFollow = () => {
 
     setLoading(true);
     try {
-      const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+      const baseUrl = getBaseUrl();
       const apiUrl = `${baseUrl}/follow`;
 
       console.log('➕ Follow API URL:', apiUrl);
@@ -56,7 +57,7 @@ const useFollow = () => {
 
     setLoading(true);
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const baseUrl = getBaseUrl();
       const apiUrl = `${baseUrl}/unfollow`;
 
       console.log('➖ Unfollow API URL:', apiUrl);

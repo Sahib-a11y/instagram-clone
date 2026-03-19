@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
@@ -17,7 +18,7 @@ const FollowersModal = ({ isOpen, onClose, userId, type, onNavigate }) => {
     
     try {
       const endpoint = type === 'followers' ? `followers/${userId}` : `following/${userId}`;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
+      const response = await fetch(`${getBaseUrl()}/${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

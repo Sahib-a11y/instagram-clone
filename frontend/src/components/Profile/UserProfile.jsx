@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -16,7 +17,7 @@ const UserProfile = ({ userId, onNavigate }) => {
     if (!userId) return;
     
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/${userId}`, {
+      const response = await fetch(`${getBaseUrl()}/user/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -52,7 +53,7 @@ const UserProfile = ({ userId, onNavigate }) => {
       const endpoint = isFollowing ? '/unfollow' : '/follow';
       const bodyKey = isFollowing ? 'UnfollowId' : 'followId';
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/${endpoint}`, {
+      const response = await fetch(`${getBaseUrl()}/${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ const UserProfile = ({ userId, onNavigate }) => {
     
     setMessageLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/conversation`, {
+      const response = await fetch(`${getBaseUrl()}/conversation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

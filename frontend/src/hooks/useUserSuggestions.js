@@ -1,3 +1,4 @@
+import { getBaseUrl } from '../utils/api';
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,7 +15,7 @@ const useUserSuggestions = () => {
     setError(null);
 
     try {
-      const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+      const baseUrl = getBaseUrl();
       const apiUrl = `${baseUrl}/suggestions`;
 
       console.log('💡 Suggestions API URL:', apiUrl);

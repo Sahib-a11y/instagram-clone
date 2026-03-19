@@ -14,6 +14,15 @@ export const useSocket = () => {
   const connect = useCallback(() => {
     if (!token || !user) return;
 
+    // Socket.IO requires persistent connections — not supported on Vercel serverless
+    // Skip connection in production Vercel environment
+    const isVercel = window.location.hostname.includes('vercel.app') ||
+                     process.env.REACT_APP_DISABLE_SOCKET === 'true';
+    if (isVercel) {
+      console.log('⚠️ Socket disabled: serverless environment detected');
+      return;
+    }
+
     try {
       // Disconnect existing socket if present
       if (socketRef.current) {
