@@ -1,4 +1,4 @@
-import { getBaseUrl } from '../utils/api';
+import { getBaseUrl } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
