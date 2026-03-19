@@ -144,24 +144,31 @@ import getApiUrl from '../utils/api';
           body: JSON.stringify({ email, password })
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          dispatch({
-            type: AUTH_ACTIONS.LOGIN_SUCCESS,
-            payload: {
-              token: data.token,
-              user: data.user
-            }
-          });
-          return { success: true };
-        } else {
+        if (!response.ok) {
+          let errorMsg = 'Login failed';
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch (jsonErr) {
+            const text = await response.text();
+            errorMsg = text.substring(0, 100) || errorMsg;
+          }
           dispatch({
             type: AUTH_ACTIONS.LOGIN_FAIL,
-            payload: data.error || 'Login failed'
+            payload: errorMsg
           });
-          return { success: false, error: data.error };
+          return { success: false, error: errorMsg };
         }
+
+        const data = await response.json();
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: {
+            token: data.token,
+            user: data.user
+          }
+        });
+        return { success: true };
       } catch (error) {
         console.error('Login error:', error);
         dispatch({
@@ -185,24 +192,31 @@ import getApiUrl from '../utils/api';
           body: JSON.stringify({ name, email, password })
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          dispatch({
-            type: AUTH_ACTIONS.REGISTER_SUCCESS,
-            payload: {
-              token: data.token,
-              user: data.user
-            }
-          });
-          return { success: true };
-        } else {
+        if (!response.ok) {
+          let errorMsg = 'Registration failed';
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorMsg;
+          } catch (jsonErr) {
+            const text = await response.text();
+            errorMsg = text.substring(0, 100) || errorMsg;
+          }
           dispatch({
             type: AUTH_ACTIONS.REGISTER_FAIL,
-            payload: data.error || 'Registration failed'
+            payload: errorMsg
           });
-          return { success: false, error: data.error };
+          return { success: false, error: errorMsg };
         }
+
+        const data = await response.json();
+        dispatch({
+          type: AUTH_ACTIONS.REGISTER_SUCCESS,
+          payload: {
+            token: data.token,
+            user: data.user
+          }
+        });
+        return { success: true };
       } catch (error) {
         console.error('Register error:', error);
         const isNetworkError = error instanceof TypeError && error.message === 'Failed to fetch';

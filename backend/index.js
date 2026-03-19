@@ -86,7 +86,7 @@ app.get('/', (req, res) => {
     })
 })
 
-app.use(Authrouter)
+app.use('/auth', Authrouter)
 app.use(Postrouter)
 app.use(Userrouter)
 app.use('/story', storyrouter)
