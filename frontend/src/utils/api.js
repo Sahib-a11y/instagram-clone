@@ -2,7 +2,10 @@ const getApiUrl = (endpoint) => {
   const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const endpoints = {
     login: '/auth/login',
-    register: '/auth/register',
+    register: '/auth/signup',
+    signup: '/auth/signup',
+    profile: '/auth/profile',
+    updateProfile: '/auth/updateProfile',
     createPost: '/createPost',
     allpost: '/allpost',
     feed: '/feed',

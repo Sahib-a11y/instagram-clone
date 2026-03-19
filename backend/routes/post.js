@@ -6,6 +6,7 @@ import requireLogin from '../middleware/requireLogin.js'
 import Post from '../models/Post.js'
 import fileUpload from "express-fileupload"
 import cloudinary from "cloudinary"
+import { createPostLikeNotification, createPostCommentNotification } from '../utils/notificationService.js'
 
 const router = Router()
 

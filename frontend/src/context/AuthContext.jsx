@@ -98,7 +98,7 @@ import getApiUrl from '../utils/api';
         
         if (token) {
           try {
-        const response = await fetch(getApiUrl('/profile'), {
+        const response = await fetch(getApiUrl('profile'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -184,7 +184,7 @@ import getApiUrl from '../utils/api';
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
 
       try {
-        const response = await fetch(getApiUrl('/signup'), {
+        const response = await fetch(getApiUrl('register'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

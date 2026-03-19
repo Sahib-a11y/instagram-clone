@@ -40,13 +40,11 @@ const AppRouter = () => {
   const navigate = (page, data = null) => {
     console.log('Navigating to:', page, data);
 
-    setCurrentPage(page);
-
-    if(page !== currentPage) {
-      setSelectedUserId(null)
-      setSelectedConversation(null)
+    if (page !== currentPage) {
+      setSelectedUserId(null);
+      setSelectedConversation(null);
     }
-    setCurrentPage(page)
+    setCurrentPage(page);
 
     if (page === 'userProfile') {
       setSelectedUserId(data);

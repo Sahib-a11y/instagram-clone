@@ -210,23 +210,4 @@ router.delete("/:id", requireLogin, async (req, res) => {
   }
 });
 
-router.get("/highlights", requireLogin, async (req, res) => {
-  try {
-    const highlights = await Story.find({
-      user: req.Userdata._id,
-      isHighlight: true
-    })
-      .populate("user", "name email pic")
-      .sort({ createdAt: -1 });
-
-    res.json(highlights);
-  } catch (error) {
-    console.error("Get highlights error:", error);
-    res.status(500).json({
-      message: "Error fetching highlights",
-      error: error.message || error,
-    });
-  }
-});
-
 export default router;

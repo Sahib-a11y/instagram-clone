@@ -36,7 +36,7 @@ router.post("/signup", async (req, res) => {
         await user.save()
         
         
-        const token = jwt.sign({ id: user._id }, process.env.SECRETKEY)
+        const token = jwt.sign({ id: user._id }, process.env.SECRETKEY, { expiresIn: '7d' })
         
         
         const { password: userPassword, ...userWithoutPassword } = user.toObject()
@@ -72,7 +72,7 @@ router.post("/login", async (req, res) => {
         const doMatch = await bcrypt.compare(password, savedUser.password)
         if (doMatch) {
             
-            const token = jwt.sign({ id: savedUser._id }, process.env.SECRETKEY)
+            const token = jwt.sign({ id: savedUser._id }, process.env.SECRETKEY, { expiresIn: '7d' })
             
             
             const { password: userPassword, ...userWithoutPassword } = savedUser.toObject()

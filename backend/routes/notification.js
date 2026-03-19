@@ -35,6 +35,21 @@ router.get("/unread-count", requireLogin, async (req, res) => {
   }
 });
 
+// Mark all notifications as read  ← must be BEFORE /:id/read to avoid route shadowing
+router.put("/mark-all-read", requireLogin, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { receiverId: req.Userdata._id, isRead: false },
+      { isRead: true }
+    );
+
+    res.json({ message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Mark all read error:", error);
+    res.status(500).json({ error: "Failed to mark all notifications as read" });
+  }
+});
+
 // Mark notification as read
 router.put("/:id/read", requireLogin, async (req, res) => {
   try {
@@ -52,21 +67,6 @@ router.put("/:id/read", requireLogin, async (req, res) => {
   } catch (error) {
     console.error("Mark as read error:", error);
     res.status(500).json({ error: "Failed to mark notification as read" });
-  }
-});
-
-// Mark all notifications as read
-router.put("/mark-all-read", requireLogin, async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { receiverId: req.Userdata._id, isRead: false },
-      { isRead: true }
-    );
-
-    res.json({ message: "All notifications marked as read" });
-  } catch (error) {
-    console.error("Mark all read error:", error);
-    res.status(500).json({ error: "Failed to mark all notifications as read" });
   }
 });
 

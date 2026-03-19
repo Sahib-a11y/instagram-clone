@@ -89,7 +89,7 @@ router.get('/', requireLogin, async (req, res) => {
           { postedBy: { $in: followingIds } },
           {
             createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Last 24 hours
-            like: { $size: { $gte: 5 } } // Popular posts
+            $expr: { $gte: [{ $size: "$like" }, 5] } // Popular posts (5+ likes)
           }
         ]
       })

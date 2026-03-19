@@ -267,7 +267,7 @@ router.put('/accept-follow/:requestId', requireLogin, async(req, res) => {
         }
 
         const requestIndex = user.followRequests.findIndex(
-            req => req._id.toString() === requestId
+            request => request._id.toString() === requestId
         );
 
         if (requestIndex === -1) {
@@ -287,6 +287,9 @@ router.put('/accept-follow/:requestId', requireLogin, async(req, res) => {
         await User.findByIdAndUpdate(requesterId, {
             $push: { following: currentUserId }
         });
+
+        // Notify requester that their follow request was accepted
+        await createFollowRequestAcceptedNotification(currentUserId, requesterId);
 
         return res.status(200).json({
             msg: "Follow request accepted"

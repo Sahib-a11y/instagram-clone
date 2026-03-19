@@ -29,7 +29,9 @@ export const createNotification = async (receiverId, senderId, type, message, po
 
     // Emit notification via socket if user is online
     try {
-      const io = (await import('../index.js')).default.io;
+      const appModule = await import('../index.js');
+      const app = appModule.default;
+      const io = app.get('io');
       if (io) {
         const populatedNotification = await Notification.findById(notification._id)
           .populate('senderId', 'name pic')
